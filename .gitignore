@@ -1,0 +1,8 @@
+# 一般暫存/建置產物；各產品倉庫請依語言/平台自行擴充
+.DS_Store
+*.log
+.env
+node_modules/
+dist/
+build/
+__pycache__/

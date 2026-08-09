@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+#
+# scripts/commit-lint.sh
+# 檢查 commit message 是否符合 governance/commit.md 的 Conventional Commits 格式。
+# 只檢查 subject line（第一行）；body / footer 不受此規則約束。
+# 刻意不檢查長度上限——50 字元是 governance/commit.md 給人看的建議，
+# 不適合當成會擋 PR 的硬性 CI 規則（見 docs/how-enforce-rules.md 的原則）。
+#
+# 用法:
+#   scripts/commit-lint.sh                  # 檢查 HEAD 的 commit message
+#   scripts/commit-lint.sh <commit-sha>      # 檢查指定 commit
+#   scripts/commit-lint.sh --range A..B      # 檢查範圍內每個 commit（CI 常用：檢查整個 PR）
+#   scripts/commit-lint.sh --file <path>     # 檢查檔案內容作為訊息（例如 git commit-msg hook）
+#   scripts/commit-lint.sh --message "..."   # 直接檢查一段文字
+#
+# exit 0 = 全部通過, exit 1 = 有訊息不符合格式
+
+set -uo pipefail
+
+TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+TYPE_SCOPE_RE="^(${TYPES})(\([a-zA-Z0-9._/-]+\))?!?: "
+
+# git subtree --squash 一定會在歷史裡留下一個「內層」squash commit
+# （例如 "Squashed 'external/foo/' content from commit <sha>" 或
+# "Squashed 'external/foo/' changes from <sha>..<sha>"），這個訊息由 git 本身
+# 產生，沒有任何 CLI 參數可以自訂；`git subtree add/pull` 的 `-m` 只會套用到
+# 外層的合併 commit。這個內層 commit 仍然是 HEAD 的祖先，`--range` 模式一定
+# 會掃到它。若不放行，任何一次 scripts/sync.sh add/pull 都會讓 commit-lint
+# 的 PR 檢查必定失敗——不是因為有人寫了不合規的訊息，而是規則本身管不到
+# 這個 commit 的作者。同理放行 `git subtree add` 在沒有帶 -m 時的預設外層
+# 訊息（"Merge commit 'X' as 'Y'"），涵蓋不透過 scripts/sync.sh、手動下
+# git subtree 指令的情境（見 docs/how-sync-upstream.md）。
+SUBTREE_AUTO_RE="^(Squashed '.*'|Merge commit '.*' as '.*')"
+
+FAIL=0
+
+check_one() {
+  local msg="$1" label="$2"
+  local subject
+  subject="$(printf '%s' "$msg" | head -n1)"
+
+  if [ -z "$subject" ]; then
+    echo "  [FAIL] $label: commit message 是空的"
+    FAIL=1
+    return
+  fi
+
+  if [[ "$subject" =~ $SUBTREE_AUTO_RE ]]; then
+    echo "  [OK]   $label: $subject (git subtree 自動產生，略過格式檢查)"
+    return
+  fi
+
+  if ! [[ "$subject" =~ $TYPE_SCOPE_RE ]]; then
+    echo "  [FAIL] $label: \"$subject\""
+    echo "         開頭需為 <type>(<scope>)?: ，type 為 ${TYPES}（見 governance/commit.md）"
+    FAIL=1
+    return
+  fi
+
+  local rest="${subject#*: }"
+  local problems=()
+  [ -z "$rest" ] && problems+=("冒號後缺少 subject 內容")
+  [[ "$rest" =~ ^[A-Z] ]] && problems+=("subject 不應大寫開頭")
+  [[ "$rest" == *. ]] && problems+=("subject 結尾不應有句點")
+
+  if [ "${#problems[@]}" -eq 0 ]; then
+    echo "  [OK]   $label: $subject"
+  else
+    local joined
+    joined="$(IFS='; '; echo "${problems[*]}")"
+    echo "  [FAIL] $label: \"$subject\" ($joined)"
+    FAIL=1
+  fi
+}
+
+mode="${1:-}"
+case "$mode" in
+  --file)
+    [ -z "${2:-}" ] && { echo "用法: $0 --file <path>" >&2; exit 1; }
+    check_one "$(cat "$2")" "$2"
+    ;;
+  --message)
+    [ -z "${2:-}" ] && { echo "用法: $0 --message \"...\"" >&2; exit 1; }
+    check_one "$2" "(inline message)"
+    ;;
+  --range)
+    [ -z "${2:-}" ] && { echo "用法: $0 --range A..B" >&2; exit 1; }
+    count=0
+    while IFS= read -r sha; do
+      [ -z "$sha" ] && continue
+      check_one "$(git log -1 --format=%B "$sha")" "${sha:0:12}"
+      count=$((count + 1))
+    done < <(git rev-list "$2")
+    if [ "$count" -eq 0 ]; then
+      echo "警告: 範圍 $2 沒有任何 commit" >&2
+    fi
+    ;;
+  "")
+    check_one "$(git log -1 --format=%B HEAD)" "HEAD"
+    ;;
+  *)
+    check_one "$(git log -1 --format=%B "$mode")" "$mode"
+    ;;
+esac
+
+if [ "$FAIL" -eq 0 ]; then
+  echo "commit-lint: 全部通過"
+  exit 0
+else
+  echo "commit-lint: 有訊息不符合 governance/commit.md 的格式"
+  exit 1
+fi

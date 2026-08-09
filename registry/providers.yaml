@@ -1,0 +1,61 @@
+# registry/providers.yaml
+#
+# AI Provider / Model Registry
+# 用途：集中管理專案中使用的 AI 供應商與模型設定，讓 AI 代理人依「角色」挑選合適的
+# 模型，也讓人類貢獻者一眼看出每個角色目前綁定哪個供應商/模型。
+#
+# 欄位說明：
+#   id             唯一識別碼，供 registry/workflow.yaml 或 AGENTS.md 參照
+#   role           對應的通用角色（見下方 roles 說明）
+#   vendor         AI 供應商（anthropic / openai / google / deepseek / local ...）
+#   model          實際呼叫的模型 ID —— 請填當下實際可用的版本，下方為佔位符
+#   interface      呼叫介面（api / cli / ide-plugin ...）
+#   context_window 該模型的 context window（token 數），供任務規劃時評估
+#   cost_tier      low / medium / high，用於成本敏感的任務分派
+#   notes          補充說明（強項、限制）
+#
+# 通用角色定義（刻意不綁定特定專案）：
+#   planner     - 需求釐清、架構設計、任務拆解
+#   implementer - 實際寫程式、產生 patch/diff
+#   verifier    - 撰寫/執行測試、驗證正確性
+#   reviewer    - Code review、風格與安全檢查
+#   researcher  - 蒐集外部/領域資料（見 docs/domain-adaptation.md）
+#
+# 下列為「範例」設定，請依實際可用的模型版本與團隊需求覆寫：
+
+providers:
+  - id: example-planner
+    role: planner
+    vendor: anthropic
+    model: "REPLACE_WITH_ACTUAL_MODEL_ID"   # 例如當下最新的高階模型
+    interface: api
+    context_window: 200000
+    cost_tier: high
+    notes: "適合需要長 context、跨檔案架構決策的任務"
+
+  - id: example-implementer
+    role: implementer
+    vendor: openai
+    model: "REPLACE_WITH_ACTUAL_MODEL_ID"
+    interface: cli
+    context_window: 128000
+    cost_tier: medium
+    notes: "適合大量程式碼產生，搭配 CLI 工具鏈"
+
+  - id: example-verifier
+    role: verifier
+    vendor: google
+    model: "REPLACE_WITH_ACTUAL_MODEL_ID"
+    interface: cli
+    context_window: 1000000
+    cost_tier: medium
+    notes: "長 context，適合一次讀完整批測試結果與 log"
+
+  - id: example-cost-efficient-alt
+    role: implementer
+    vendor: deepseek
+    model: "REPLACE_WITH_ACTUAL_MODEL_ID"
+    interface: api
+    context_window: 128000
+    cost_tier: low
+    notes: "預算有限或任務重複性高時的替代選擇"

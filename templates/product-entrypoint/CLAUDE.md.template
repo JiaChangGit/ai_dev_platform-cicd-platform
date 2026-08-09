@@ -1,0 +1,13 @@
+# CLAUDE.md
+
+> 這是 Claude Code 的轉接器，不重複維護內容。共用規則在
+> `../ai-dev-platform/AGENTS.md`，本專案專屬規則在 `AGENTS.md`。
+
+@../ai-dev-platform/AGENTS.md
+@AGENTS.md
+
+## Claude Code 專屬補充
+
+- 開始任務前跑 `/memory` 確認上面兩個 import 都有載入成功
+- 第一次載入這兩個 import 會跳出核准對話框，若不小心選了拒絕，見
+  `../ai-dev-platform/CLAUDE.md` 的說明去重新啟用

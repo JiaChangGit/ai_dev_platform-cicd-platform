@@ -1,0 +1,51 @@
+# registry/skills.yaml
+#
+# 「Skill」在此指可重複使用的 AI 能力模組（例如以 SKILL.md 描述的最佳實踐包），
+# 概念上與 Claude Skills / Codex CLI 的 skill 機制相容。
+# 本檔案是 skill 的索引，實際內容存放在：
+#   - external/ 底下由 git subtree 同步進來的第三方 skill
+#   - 專案自製的 skills/ 目錄（若有，需自行建立）
+
+skills:
+  - id: anthropic-skills-bundle
+    source: external/anthropic-skills
+    type: external-subtree
+    description: "Anthropic 官方/社群維護的技能包集合"
+    applicable_domains: [general, docx, pptx, xlsx, pdf]
+    trigger_keywords: [word, excel, powerpoint, pdf, 文件, 簡報, 試算表]
+
+  - id: openai-cookbook-bundle
+    source: external/openai-cookbook
+    type: external-subtree
+    description: "OpenAI Cookbook 中與 prompt engineering、工具使用相關的範例"
+    applicable_domains: [general, llm-integration]
+    trigger_keywords: [prompt, function calling, embeddings, rag]
+
+  - id: grill-with-docs-skill
+    source: external/mattpocock-skills/engineering/grill-with-docs
+    type: external-subtree
+    description: "語意對齊與決策存證：訪談式釐清設計/用詞，寫入 CONTEXT.md 與 docs/adr/。依賴同倉庫內 grilling、domain-modeling 兩個技能，所以整個 external/mattpocock-skills 都要同步，不是只有這個子路徑（見 docs/external-frameworks.md）"
+    applicable_domains: [general]
+    trigger_keywords: [grill-with-docs, context.md, 術語, 詞彙表, adr]
+
+  - id: superpowers-bundle
+    source: external/superpowers
+    type: external-subtree
+    description: "執行紀律的具體實作：TDD、brainstorm、write-plan、execute-plan 等 skill；governance/agent-discipline.md 才是工具無關的最低要求（見 docs/external-frameworks.md）"
+    applicable_domains: [general]
+    trigger_keywords: [superpowers, tdd, brainstorm, write-plan, execute-plan]
+
+  # 注意：OpenSpec 不在此列——它是安裝在「產品倉庫」內的 CLI 工具，
+  # 不是可被動讀取的參考內容，不適合套用這份 schema 的 source/type 語意，
+  # 索引位置在 registry/frameworks.yaml，說明見 docs/external-frameworks.md
+
+  # 新增自製 skill 的範例格式；實際新增時複製這個區塊並填值，
+  # 同時在 skills/<skill-name>/SKILL.md 建立內容。
+  # 注意：skills/ 目錄刻意不預先建立在骨架裡（避免空目錄／佔位檔案造成的雜訊），
+  # 第一次新增自製 skill 時再建立即可，不代表目錄缺漏。
+  - id: TEMPLATE-add-your-skill
+    source: skills/TEMPLATE
+    type: local
+    description: "REPLACE_ME"
+    applicable_domains: [REPLACE_ME]
+    trigger_keywords: [REPLACE_ME]

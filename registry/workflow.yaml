@@ -1,0 +1,119 @@
+# registry/workflow.yaml
+#
+# 對照每一種 workflow/ 文件所需的 governance 規則、templates，
+# 以及建議的 provider 角色分工。AI 代理人執行任務前應先查此表——
+# 這是「任務類型該遵守什麼」的唯一事實來源，AGENTS.md 不重複維護第二份。
+#
+# handoff_required: true 代表 suggested_roles 有多個角色接力執行，
+# 角色交接時必須依 templates/task-handoff.md 產出實體交接檔案
+# （見 AGENTS.md 2.1 節），因此這類項目的 templates 一律包含
+# templates/task-handoff.md。
+
+workflows:
+  - id: feature
+    doc: workflow/feature.md
+    governance:
+      - governance/branch.md
+      - governance/commit.md
+      - governance/review.md
+      - governance/documentation.md
+      - governance/agent-discipline.md
+    templates:
+      - templates/issue.md
+      - templates/pr.md
+      - templates/adr.md
+      - templates/task-handoff.md
+    suggested_roles: [planner, implementer, verifier, reviewer]
+    handoff_required: true
+    deliverables:
+      - "更新後的原始碼與測試"
+      - "必要時的 ADR（templates/adr.md）"
+      - "更新後的文件"
+      - "符合 templates/pr.md 的 PR"
+
+  - id: bugfix
+    doc: workflow/bugfix.md
+    governance:
+      - governance/branch.md
+      - governance/commit.md
+      - governance/review.md
+      - governance/agent-discipline.md
+    templates:
+      - templates/issue.md
+      - templates/pr.md
+      - templates/task-handoff.md
+    suggested_roles: [implementer, verifier, reviewer]
+    handoff_required: true
+    deliverables:
+      - "可重現的最小 regression test"
+      - "修正的程式碼"
+      - "連結原始 issue 的 PR"
+
+  - id: debug
+    doc: workflow/debug.md
+    governance:
+      - governance/commit.md
+      - governance/agent-discipline.md
+    templates:
+      - templates/issue.md
+      - templates/task-handoff.md
+    suggested_roles: [researcher, implementer]
+    handoff_required: true
+    deliverables:
+      - "根因分析紀錄"
+      - "重大問題另補 postmortem"
+
+  - id: review
+    doc: workflow/review.md
+    governance:
+      - governance/review.md
+      - governance/security.md
+    templates:
+      - templates/pr.md
+    suggested_roles: [reviewer]
+    handoff_required: false
+    deliverables:
+      - "審查意見與核准/退回決議"
+
+  - id: benchmark
+    doc: workflow/benchmark.md
+    governance:
+      - governance/documentation.md
+    templates:
+      - templates/benchmark.md
+      - templates/task-handoff.md
+    suggested_roles: [verifier, researcher]
+    handoff_required: true
+    deliverables:
+      - "符合 templates/benchmark.md 的效能報告"
+
+  - id: release
+    doc: workflow/release.md
+    governance:
+      - governance/release.md
+      - governance/security.md
+      - governance/agent-discipline.md
+    templates:
+      - templates/release-note.md
+      - templates/task-handoff.md
+    suggested_roles: [planner, verifier, reviewer]
+    handoff_required: true
+    repo_scope: "橫跨 product-cicd-platform（凍結/驗證）與 product-release（封裝/發布），見 workflow/release.md"
+    deliverables:
+      - "版本標籤"
+      - "符合 templates/release-note.md 的 release note"
+      - "建置產物與（如適用）依賴清單"
+      - "product-cicd-platform → product-release 的交接檔案（templates/task-handoff.md）"
+
+  - id: documentation
+    doc: workflow/documentation.md
+    governance:
+      - governance/documentation.md
+    templates:
+      - templates/pr.md
+      - templates/task-handoff.md
+    suggested_roles: [researcher, implementer]
+    handoff_required: true
+    deliverables:
+      - "新增或更新的文件"
+      - "文件審查通過紀錄"

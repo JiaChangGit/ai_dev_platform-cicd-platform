@@ -1,0 +1,47 @@
+# registry/frameworks.yaml
+#
+# 「框架 (framework)」在此指會改變某個 workflow 階段「怎麼執行」的外部方法論/
+# 工具（例如改用哪一套流程做規格管理），跟 registry/skills.yaml 的被動參考內容
+# 不是同一種性質，所以獨立成一份索引，避免把兩種不同的東西塞進同一個 schema。
+# 三者的分工判斷、安裝方式、跟既有 workflow/governance 的關係，完整說明在
+# docs/external-frameworks.md；這裡只做給 AI 代理人查的機器可讀索引，不重複
+# 寫一次敘述性內容。
+#
+# 欄位：
+#   id                   唯一識別碼
+#   owns_layer           在「語意對齊/規格管理/執行紀律」三層中屬於哪一層
+#   source_repo          上游原始倉庫；列在這裡不代表已安裝，安裝流程一律見
+#                         docs/external-frameworks.md
+#   subtree_ref          若有 external/ 底下的 subtree 靜態副本，路徑為何；
+#                         null 代表這個框架不透過 subtree 分發（例如純 CLI 工具）
+#   trigger              manual：需人類手動叫用（例如打 /grill-with-docs）
+#                         automatic：工具依任務內容自動觸發，不需手動叫用
+#   produces             這個框架會寫入「產品倉庫」的產物路徑，供人類或
+#                         scripts/check.sh 之類的工具日後追查來源
+#   applies_to_workflows 對應 registry/workflow.yaml 的 workflow id，
+#                         供 AI 判斷這個任務類型可能用得上哪個框架
+
+frameworks:
+  - id: grill-with-docs
+    owns_layer: semantic-alignment
+    source_repo: https://github.com/mattpocock/skills
+    subtree_ref: external/mattpocock-skills/engineering/grill-with-docs   # 整個 external/mattpocock-skills 要一起同步，見該目錄 PENDING.md
+    trigger: manual
+    produces: [CONTEXT.md, CONTEXT-MAP.md, docs/adr/**]
+    applies_to_workflows: [feature]
+
+  - id: openspec
+    owns_layer: spec-and-change-management
+    source_repo: https://github.com/Fission-AI/OpenSpec
+    subtree_ref: null
+    trigger: manual
+    produces: [openspec/specs/**, openspec/changes/**]
+    applies_to_workflows: [feature]
+
+  - id: superpowers
+    owns_layer: execution-discipline
+    source_repo: https://github.com/obra/superpowers
+    subtree_ref: external/superpowers
+    trigger: automatic
+    produces: []
+    applies_to_workflows: [feature, bugfix, debug]

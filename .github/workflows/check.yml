@@ -1,0 +1,42 @@
+# .github/workflows/check.yml
+#
+# 範例 pipeline：驗證 ai-dev-platform 倉庫自身的完整性 + commit message 格式。
+# 套用到產品倉庫（product-cicd-platform）時，把 self-check 步驟換成產品倉庫
+# 自己的 build/test/lint，commit-lint 步驟可直接沿用（產品無關）。
+# 詳見 docs/how-enforce-rules.md。
+
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  self-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # commit-lint --range 需要完整歷史
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install PyYAML（供 scripts/check.sh 做 YAML 語法檢查）
+        run: pip install pyyaml --quiet
+
+      - name: Run repository self-check
+        run: bash scripts/check.sh
+
+      - name: Lint commit messages (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          bash scripts/commit-lint.sh --range \
+            "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+
+      - name: Lint commit message (push)
+        if: github.event_name == 'push'
+        run: bash scripts/commit-lint.sh HEAD
