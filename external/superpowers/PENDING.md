@@ -8,7 +8,7 @@
 2. 另外找一個資料夾 clone 你的 fork：
 
    ```bash
-   git clone https://github.com/<YOUR_GITHUB_ORG>/superpowers.git /path/to/superpowers-clone
+   git clone https://github.com/JiaChangGit/superpowers.git /path/to/superpowers-clone
    cd /path/to/superpowers-clone
    git subtree split --prefix=skills -b extract-skills
    git push origin extract-skills

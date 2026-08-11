@@ -16,7 +16,7 @@
 2. 另外找一個資料夾 clone 你的 fork：
 
    ```bash
-   git clone https://github.com/<YOUR_GITHUB_ORG>/skills.git /path/to/mattpocock-skills-clone
+   git clone https://github.com/JiaChangGit/skills.git /path/to/mattpocock-skills-clone
    cd /path/to/mattpocock-skills-clone
    git subtree split --prefix=skills -b extract-mattpocock-skills
    git push origin extract-mattpocock-skills

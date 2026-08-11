@@ -136,7 +136,7 @@ run_one() {
   local action="$1" name="$2" repo="$3" branch="$4" prefix="$5"
 
   case "$repo" in
-    *"<YOUR_GITHUB_ORG>"*)
+    *"JiaChangGit"*)
       echo "[skip] $name: 請先在 external/subtrees.yaml 將 repo 換成你自己的 fork URL" >&2
       return 0
       ;;

@@ -15,12 +15,12 @@
 
 subtrees:
   - name: anthropic-skills
-    repo: https://github.com/<YOUR_GITHUB_ORG>/anthropic-skills.git
+    repo: https://github.com/JiaChangGit/anthropic-skills.git
     branch: main
     prefix: external/anthropic-skills
 
   - name: openai-cookbook
-    repo: https://github.com/<YOUR_GITHUB_ORG>/openai-cookbook.git
+    repo: https://github.com/JiaChangGit/openai-cookbook.git
     branch: main
     prefix: external/openai-cookbook
 
@@ -32,11 +32,11 @@ subtrees:
   # 原因是 grill-with-docs 依賴同倉庫內另外兩個不同層級的技能資料夾，沒有比
   # skills/ 更小的共同上層資料夾能一次涵蓋，細節見該目錄的 PENDING.md
   - name: mattpocock-skills
-    repo: https://github.com/<YOUR_GITHUB_ORG>/skills.git
+    repo: https://github.com/JiaChangGit/skills.git
     branch: extract-mattpocock-skills
     prefix: external/mattpocock-skills
 
   - name: superpowers
-    repo: https://github.com/<YOUR_GITHUB_ORG>/superpowers.git
+    repo: https://github.com/JiaChangGit/superpowers.git
     branch: extract-skills
     prefix: external/superpowers
