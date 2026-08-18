@@ -6,7 +6,7 @@
 
 ```mermaid
 flowchart LR
-    A["ai_dev_platform-cicd-platform<br/>Git 維護儲存庫"] -->|"功能分支 + PR"| G["GitHub<br/>JiaChangGit/ai-dev-platform"]
+    A["ai_dev_platform-cicd-platform<br/>Git 維護儲存庫"] -->|"功能分支 + PR"| G["GitHub<br/>JiaChangGit/ai_dev_platform-cicd-platform"]
     A -->|"已驗證 ZIP"| C["CI／成品平台"]
     C -->|"安裝／更新"| S["ai-dev-platform<br/>唯讀、無 .git"]
     C -->|"證據 + URI／SHA-256"| R["ai_dev_platform-release<br/>獨立 Git 儲存庫"]
@@ -14,9 +14,9 @@ flowchart LR
 
 | Work 目錄 | 是否推送 | 目的地 |
 |---|---|---|
-| `ai_dev_platform-cicd-platform/` | 是 | 既有 `git@github.com:JiaChangGit/ai-dev-platform.git` |
+| `ai_dev_platform-cicd-platform/` | 是 | 既有 `git@github.com:JiaChangGit/ai_dev_platform-cicd-platform.git` |
 | `ai-dev-platform/` | 否 | 不含 `.git`，只由已驗證 ZIP 安裝 |
-| `ai_dev_platform-release/` | 另案處理 | 必須建立獨立 remote；不得推到 `ai-dev-platform` 儲存庫 |
+| `ai_dev_platform-release/` | 另案處理 | 必須建立獨立 remote；不得推到 `ai_dev_platform-cicd-platform` 維護儲存庫 |
 | `*.backup-*`、`*.legacy-*` | 否 | 驗收後刪除，不得加入 Git |
 
 ## 推送前檢查
@@ -96,7 +96,7 @@ gh pr create \
 若不安裝 `gh`，推送分支後開啟：
 
 ```text
-https://github.com/JiaChangGit/ai-dev-platform/compare/main...agent/harden-ai-dev-platform?expand=1
+https://github.com/JiaChangGit/ai_dev_platform-cicd-platform/compare/main...agent/harden-ai-dev-platform?expand=1
 ```
 
 建立 PR 時保持 Draft，使用 `.github/pull_request_template.md`。GitHub Actions 的 `self-check` 與 `android-example` 實際通過後，再改為 Ready for review。
@@ -121,8 +121,8 @@ https://github.com/JiaChangGit/ai-dev-platform/compare/main...agent/harden-ai-de
 cd /home/user/Work/ai_dev_platform-release
 git add -A
 git commit -m "chore: initialize release metadata repository"
-git remote add origin git@github.com:JiaChangGit/ai-dev-platform-release.git
+git remote add origin git@github.com:JiaChangGit/ai_dev_platform-release.git
 git push -u origin main
 ```
 
-不得把這個 remote 改成 `JiaChangGit/ai-dev-platform.git`，也不得把 ZIP、SBOM、簽章或其他建置成品提交到發行儲存庫。
+不得把這個 remote 改成 `JiaChangGit/ai_dev_platform-cicd-platform.git`，也不得把 ZIP、SBOM、簽章或其他建置成品提交到發行儲存庫。
