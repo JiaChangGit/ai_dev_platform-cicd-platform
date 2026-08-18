@@ -55,7 +55,8 @@ jobs:
             scripts/validate_ci_adapters.py
           python3 -m unittest discover -s tests -v
           python3 -B scripts/audit_skills.py
-          python3 -B scripts/pre_push_audit.py
+          # CI runner 不建立 commit；--ci 只略過 user.name／user.email，其他安全檢查不變。
+          python3 -B scripts/pre_push_audit.py --ci
           python3 scripts/package_release.py --dry-run --source-ref "${{ github.sha }}"
 
       - name: Lint commit messages (PR)

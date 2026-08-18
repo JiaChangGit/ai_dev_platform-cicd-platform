@@ -81,6 +81,10 @@ class ProductInitTest(unittest.TestCase):
             self.assertEqual(validate_release_layout(release), [])
             self.assertFalse((release / "external").exists())
             self.assertFalse((release / "app").exists())
+            release_ignore = (release / ".gitignore").read_text(encoding="utf-8")
+            for rule in (".env", "*.pem", "*.key", "credentials/", "/.ai/handoffs/", "*.zip"):
+                self.assertIn(rule, release_ignore)
+            self.assertIn("獨立 `.git`", (release / "AGENTS.md").read_text(encoding="utf-8"))
 
     def test_supports_every_ci_adapter(self):
         expected = {

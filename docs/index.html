@@ -89,9 +89,10 @@ python3 -B scripts/verify_package.py dist/ai-dev-platform-1.2.0.zip
 # &lt;Work&gt; 換成共同父目錄；先預覽再安裝
 python3 -B scripts/install_platform.py dist/ai-dev-platform-1.2.0.zip \
   --work-root &lt;Work&gt; --dry-run
-python3 -B scripts/install_platform.py dist/ai-dev-platform-1.2.0.zip \
-  --work-root &lt;Work&gt;</code></pre>
-      <div class="callout bad">不要在 <code>ai-dev-platform/</code> 執行 <code>git init</code>。安裝器發現目標含 <code>.git</code> 會停止，避免把維護 repo 當成可替換的下載包。</div>
+	python3 -B scripts/install_platform.py dist/ai-dev-platform-1.2.0.zip \
+	  --work-root &lt;Work&gt;</code></pre>
+	      <div class="callout"><strong>CI 模式：</strong>GitHub Actions、GitLab CI 或其他 runner 不建立 commit 時，使用 <code>python3 -B scripts/pre_push_audit.py --ci</code>。這只略過 runner 的 <code>user.name</code>／<code>user.email</code>，敏感資料、remote、忽略規則與建置成品仍是阻擋條件。</div>
+	      <div class="callout bad">不要在 <code>ai-dev-platform/</code> 執行 <code>git init</code>。安裝器發現目標含 <code>.git</code> 會停止，避免把維護 repo 當成可替換的下載包。</div>
       <h3>B. 建立 Android 或 SSD 產品</h3>
       <pre><code>cd &lt;Work&gt;/ai-dev-platform
 
@@ -159,7 +160,8 @@ python3 -B scripts/init_product.py \
       <div class="callout bad"><strong>先分清楚移除位置。</strong>平台維護 repo 與產品開發 repo 需要 Git commit 來驗證 <code>sourceRef</code>、版本與來源關係，不能為了讓下載包乾淨就刪除它們的 <code>.git</code>。正確做法是由封裝器建立不含 Git 的 ZIP，再安裝成唯讀平台。</div>
       <div class="table-wrap"><table><thead><tr><th>項目</th><th>處理</th><th>程式上的理由</th></tr></thead><tbody>
         <tr><td>維護 repo 的 <code>.git/</code></td><td><span class="tag keep">保留</span></td><td>正式 package 要對應不可變 commit；readiness 也會核對來源 commit／ref。</td></tr>
-        <tr><td>產品開發 repo 的 <code>.git/</code></td><td><span class="tag keep">保留</span></td><td>產品原始碼、審查與 CI 的來源。</td></tr>
+	        <tr><td>產品開發 repo 的 <code>.git/</code></td><td><span class="tag keep">保留</span></td><td>產品原始碼、審查與 CI 的來源。</td></tr>
+	        <tr><td>發行 repo 的 <code>.git/</code></td><td><span class="tag keep">獨立重建</span></td><td>只連接同名的空白遠端；若遠端已有歷史就重新 clone，不得 force push。</td></tr>
         <tr><td>下載 ZIP 內的 <code>.git/</code></td><td><span class="tag req">必須排除</span></td><td>distribution manifest 排除，package verifier 也拒絕 Git 內部路徑。</td></tr>
         <tr><td><code>.ai/handoffs/</code></td><td><span class="tag req">不進 Git</span></td><td>可能含任務上下文、問題細節、檔名或內部資訊。</td></tr>
         <tr><td><code>dist/</code>、<code>build/</code>、<code>__pycache__/</code>、<code>.gradle/</code></td><td><span class="tag req">不進 Git</span></td><td>可重建的本機輸出，由 <code>.gitignore</code> 與 package exclude 處理。</td></tr>

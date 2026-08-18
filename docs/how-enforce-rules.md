@@ -22,7 +22,8 @@
 兩者都執行：
 
 1. `scripts/check.sh`：驗證本儲存庫的完整性（見該腳本內註解）
-2. `scripts/commit-lint.sh`：驗證 commit message 是否符合 `governance/commit.md` 的 Conventional Commits 格式
+2. `scripts/pre_push_audit.py --ci`：在 CI 重跑敏感資料、建置成品、忽略規則與 remote 邊界檢查；CI runner 不建立 commit，因此只略過 `user.name`／`user.email`
+3. `scripts/commit-lint.sh`：驗證 commit message 是否符合 `governance/commit.md` 的 Conventional Commits 格式
 
 若你把本儲存庫的 CI 設定原封不動搬去別的平台（例如 Jenkins、內部自架系統），核心邏輯就是這兩個腳本，pipeline 設定檔只是負責「在什麼時機呼叫它們」，重寫 pipeline 設定不需要重寫檢查邏輯本身。
 

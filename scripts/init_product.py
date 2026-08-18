@@ -415,6 +415,8 @@ def release_agents(config: ProductConfig) -> str:
 - 只保存 `release-evidence/*.json`、`release-notes/*.md`、Git tag 與必要的儲存庫管理檔。
 - 建置成品只保存在 CI／成品平台；本儲存庫只記錄不可變 URI 與 SHA-256。
 - 不得加入產品原始碼、`external/`、第三方 skill、APK、AAB、韌體映像檔、ELF、ZIP 或其他建置成品。
+- 本儲存庫使用獨立 `.git` 與 remote，不得和產品開發儲存庫共用 Git 歷史或 origin。
+- 若使用 `--no-git` 或需要重建 `.git`，只能連接同名的空白遠端；不得 force push 覆寫既有歷史。
 - 變更完成後先執行 `python3 -B ../ai-dev-platform/scripts/verify_release_layout.py .`。
 - 正式發布前必須執行 `verify_release_readiness.py`；建置、測試、lint、安全、封裝、簽章、SBOM、SLSA、獨立核准與 tag 均為阻擋條件。
 """
@@ -440,6 +442,18 @@ flowchart LR
 | 發行標記 | Git tag `v<MAJOR>.<MINOR>.<PATCH>` |
 | 成品位置與摘要 | 發行證據內的 `artifact.uri`、`artifact.sha256` |
 
+## Git 初始化與 remote
+
+初始化工具預設會建立獨立 `.git`。若使用 `--no-git` 或刻意移除舊的本機 Git 中繼資料，先在 Git 服務建立同名空白遠端，再執行：
+
+```bash
+git init -b main
+git remote add origin <release-repository-url>
+git remote -v
+```
+
+遠端若已有 commit，應先 clone 並搬入允許的發行檔案，不得使用 force push 覆寫。
+
 ## 驗證
 
 ```bash
@@ -452,7 +466,20 @@ python3 -B ../ai-dev-platform/scripts/verify_release_evidence.py release-evidenc
 
 
 def release_gitignore() -> str:
-    return """# 發行儲存庫不得保存產品原始碼、skill 或建置成品。
+    return """# 發行儲存庫不得保存敏感資料、產品原始碼、skill 或建置成品。
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+secrets/
+credentials/
+/.ai/handoffs/
+*.log
+__pycache__/
 external/
 src/
 app/

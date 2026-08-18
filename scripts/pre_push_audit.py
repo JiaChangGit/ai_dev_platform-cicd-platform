@@ -32,6 +32,12 @@ FORBIDDEN_TRACKED_PARTS = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff
 FORBIDDEN_TRACKED_SUFFIXES = {".pem", ".key", ".p12", ".pfx", ".jks", ".keystore"}
 SCAN_CHUNK_BYTES = 1024 * 1024
 SCAN_OVERLAP_BYTES = 512
+SAFE_REMOTE_PATTERN = re.compile(
+    r"(?:(?:git@[A-Za-z0-9_.-]+:)"
+    r"|(?:ssh://git@[A-Za-z0-9_.-]+(?::\d+)?/)"
+    r"|(?:https://[A-Za-z0-9_.-]+(?::\d+)?/))"
+    r"[A-Za-z0-9_.~/-]+(?:\.git)?"
+)
 
 
 def git(root: Path, *args: str) -> str:
@@ -44,6 +50,11 @@ def repository_files(root: Path) -> list[str]:
     tracked = git(root, "ls-files", "-z").split("\0")
     untracked = git(root, "ls-files", "--others", "--exclude-standard", "-z").split("\0")
     return sorted({path for path in tracked + untracked if path})
+
+
+def is_safe_remote_url(remote: str) -> bool:
+    """只接受不含內嵌密碼或 Token 的 Git SSH／HTTPS remote。"""
+    return SAFE_REMOTE_PATTERN.fullmatch(remote) is not None
 
 
 def find_secret_types(path: Path) -> list[str]:
@@ -67,7 +78,33 @@ def find_secret_types(path: Path) -> list[str]:
         return []
 
 
-def audit_repository(root: Path) -> dict:
+def inspect_git_identity(
+    root: Path,
+    *,
+    required: bool,
+) -> tuple[dict[str, str], list[str], list[str]]:
+    """讀取本機 commit 身分；CI runner 不建立 commit，因此不要求此設定。"""
+    errors: list[str] = []
+    warnings: list[str] = []
+    try:
+        identity = {
+            "name": git(root, "config", "user.name"),
+            "email": git(root, "config", "user.email"),
+        }
+    except subprocess.CalledProcessError:
+        identity = {"name": "", "email": ""}
+        if required:
+            errors.append("Git user.name 與 user.email 必須先設定")
+    if (
+        required
+        and identity["email"]
+        and not identity["email"].lower().endswith("@users.noreply.github.com")
+    ):
+        warnings.append("Git commit 會公開目前的 user.email；公開儲存庫建議改用 GitHub noreply 信箱")
+    return identity, errors, warnings
+
+
+def audit_repository(root: Path, *, ci: bool = False) -> dict:
     root = root.resolve()
     errors: list[str] = []
     warnings: list[str] = []
@@ -84,8 +121,8 @@ def audit_repository(root: Path) -> dict:
 
     try:
         remote = git(root, "remote", "get-url", "origin")
-        if not re.fullmatch(r"(?:git@github\.com:|https://github\.com/)[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?", remote):
-            errors.append("origin 不是無內嵌憑證的 GitHub SSH／HTTPS URL")
+        if not is_safe_remote_url(remote):
+            errors.append("origin 不是無內嵌憑證的 Git SSH／HTTPS URL")
     except (OSError, subprocess.CalledProcessError):
         errors.append("缺少 origin remote")
         remote = ""
@@ -127,22 +164,20 @@ def audit_repository(root: Path) -> dict:
     branch = git(root, "branch", "--show-current")
     if branch in {"main", "master"}:
         warnings.append("目前在預設分支；推送前應建立 agent/<description> 功能分支")
-    try:
-        identity = {
-            "name": git(root, "config", "user.name"),
-            "email": git(root, "config", "user.email"),
-        }
-    except subprocess.CalledProcessError:
-        identity = {"name": "", "email": ""}
-        errors.append("Git user.name 與 user.email 必須先設定")
-    if identity["email"] and not identity["email"].lower().endswith("@users.noreply.github.com"):
-        warnings.append("Git commit 會公開目前的 user.email；公開儲存庫建議改用 GitHub noreply 信箱")
+    identity, identity_errors, identity_warnings = inspect_git_identity(
+        root,
+        required=not ci,
+    )
+    errors.extend(identity_errors)
+    warnings.extend(identity_warnings)
     return {
         "schemaVersion": 1,
+        "auditMode": "ci" if ci else "local",
         "repository": str(root),
         "remote": remote,
         "branch": branch,
         "gitIdentity": identity,
+        "gitIdentityRequired": not ci,
         "scannedFileCount": len(files),
         "errors": errors,
         "warnings": warnings,
@@ -154,9 +189,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path, nargs="?", default=Path.cwd())
     parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--ci",
+        action="store_true",
+        help="CI 驗證模式：不要求 runner 設定 Git commit 身分；其他檢查不變",
+    )
     args = parser.parse_args()
     try:
-        result = audit_repository(args.root)
+        result = audit_repository(args.root, ci=args.ci)
     except (OSError, subprocess.CalledProcessError) as error:
         print(f"[FAIL] pre-push audit: {error}", file=sys.stderr)
         return 1
