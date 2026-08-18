@@ -2,7 +2,7 @@
   "$schema": "https://opencode.ai/config.json",
   // opencode 會原生讀取專案根目錄的 AGENTS.md，不需要任何額外設定就能運作，
   // 這份檔案刻意留到最小：
-  //   1. 明確聲明本倉庫遵循的 opencode config schema
+  //   1. 明確聲明本儲存庫遵循的 opencode config schema
   //   2. 預留擴充點——未來若要用 opencode 的具名 agent 機制對應
   //      registry/providers.yaml 定義的角色（planner/implementer/verifier/...），
   //      可以在 "agent" 欄位加上去，見 https://opencode.ai/docs/agents/

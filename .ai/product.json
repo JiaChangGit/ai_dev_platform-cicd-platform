@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "product": "ai-dev-platform",
+  "displayName": "AI Dev Platform",
+  "domain": "developer-platform",
+  "ci": "github-actions",
+  "platform": "../ai-dev-platform",
+  "platformVersionPolicy": "always-current",
+  "releaseRepository": "../ai_dev_platform-release"
+}

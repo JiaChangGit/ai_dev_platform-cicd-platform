@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "product": "<PRODUCT_NAME>",
+  "version": "<VERSION>",
+  "source": {
+    "repository": "<REPOSITORY_URL>",
+    "commit": "<FULL_COMMIT_SHA>",
+    "ref": "refs/heads/main"
+  },
+  "artifact": {
+    "uri": "<IMMUTABLE_VERSIONED_ARTIFACT_URI>",
+    "sha256": "<64_CHARACTER_SHA256>",
+    "immutable": true,
+    "signatureUri": "<DETACHED_SIGNATURE_URI>",
+    "signatureSha256": "<64_CHARACTER_SIGNATURE_SHA256>",
+    "signatureAlgorithm": "openssl-sha256"
+  },
+  "verification": {
+    "ciSystem": "<github-actions|gitlab-ci|jenkins|internal-ci>",
+    "runId": "<CI_RUN_URL_OR_ID>",
+    "checks": ["build", "test", "lint", "security", "package"]
+  },
+  "sbom": {
+    "uri": "<IMMUTABLE_SBOM_URI>",
+    "sha256": "<64_CHARACTER_SHA256>",
+    "format": "spdx-json"
+  },
+  "provenance": {
+    "uri": "<IMMUTABLE_PROVENANCE_URI>",
+    "sha256": "<64_CHARACTER_SHA256>",
+    "predicateType": "https://slsa.dev/provenance/v1"
+  },
+  "approval": { "status": "approved", "approvedBy": "<INDEPENDENT_APPROVER>" },
+  "release": { "publisher": "<RELEASE_PUBLISHER>" }
+}

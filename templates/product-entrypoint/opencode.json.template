@@ -1,5 +1,4 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  // 平行參考模式用這個路徑；若改用內嵌模式，換成實際內嵌路徑（例如 ".ai/AGENTS.md"）
-  "instructions": ["../ai-dev-platform/AGENTS.md"]
+  "instructions": ["../ai-dev-platform/AGENTS.md", "AGENTS.md"]
 }

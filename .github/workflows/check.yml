@@ -1,11 +1,18 @@
 # .github/workflows/check.yml
 #
-# 範例 pipeline：驗證 ai-dev-platform 倉庫自身的完整性 + commit message 格式。
-# 套用到產品倉庫（product-cicd-platform）時，把 self-check 步驟換成產品倉庫
+# 範例 pipeline：驗證 ai-dev-platform 儲存庫自身的完整性 + commit message 格式。
+# 套用到產品儲存庫（product-cicd-platform）時，把 self-check 步驟換成產品儲存庫
 # 自己的 build/test/lint，commit-lint 步驟可直接沿用（產品無關）。
 # 詳見 docs/how-enforce-rules.md。
 
 name: check
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   push:
@@ -17,7 +24,7 @@ jobs:
   self-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0  # commit-lint --range 需要完整歷史
 
@@ -31,6 +38,26 @@ jobs:
       - name: Run repository self-check
         run: bash scripts/check.sh
 
+      - name: Validate offline release package plan
+        run: |
+          python3 -m py_compile \
+            scripts/init_product.py \
+            scripts/install_platform.py \
+            scripts/audit_workspace.py \
+            scripts/audit_skills.py \
+            scripts/pre_push_audit.py \
+            scripts/package_release.py \
+            scripts/package_optional_pack.py \
+            scripts/verify_package.py \
+            scripts/verify_release_evidence.py \
+            scripts/verify_release_layout.py \
+            scripts/verify_release_readiness.py \
+            scripts/validate_ci_adapters.py
+          python3 -m unittest discover -s tests -v
+          python3 -B scripts/audit_skills.py
+          python3 -B scripts/pre_push_audit.py
+          python3 scripts/package_release.py --dry-run --source-ref "${{ github.sha }}"
+
       - name: Lint commit messages (PR)
         if: github.event_name == 'pull_request'
         run: |
@@ -40,3 +67,24 @@ jobs:
       - name: Lint commit message (push)
         if: github.event_name == 'push'
         run: bash scripts/commit-lint.sh HEAD
+
+  android-example:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "9.4.1"
+
+      - name: Build, test and lint Android example
+        working-directory: examples/android-app
+        run: |
+          gradle --no-daemon :app:assembleDebug
+          gradle --no-daemon :app:testDebugUnitTest
+          gradle --no-daemon :app:lintDebug

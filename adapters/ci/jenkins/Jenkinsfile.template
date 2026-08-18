@@ -1,0 +1,17 @@
+pipeline {
+  agent any
+  stages {
+    stage('Verify') {
+      steps { sh '<BUILD_COMMAND> && <TEST_COMMAND> && <LINT_AND_SECURITY_COMMAND>' }
+    }
+    stage('Package') {
+      steps { sh '<PACKAGE_COMMAND>' }
+    }
+    stage('Evidence') {
+      steps {
+        sh '<WRITE_RELEASE_EVIDENCE_JSON_COMMAND>'
+        archiveArtifacts artifacts: '<EVIDENCE_AND_ARTIFACT_PATHS>', fingerprint: true
+      }
+    }
+  }
+}

@@ -43,16 +43,16 @@
 
 一個 commit 只做一件事：**這個 commit 需要的說明，能不能用一句不含「而且」「順便」的句子講完**。以下情況要拆成多個 commit：
 - 格式化 / 重排版 與 邏輯變更混在一起
-- 依賴升級 與 功能開發混在一起
+- 相依套件升級與功能開發混在一起
 - 兩個各自獨立、只是剛好同一輪對話一起做的修正（例如同時修了兩個不相關的 bug）
 
-這條規則被列進每日執行紀律，見 `governance/agent-discipline.md` 1.3 節——原因是它直接決定了之後回滾能不能乾淨執行。
+這條規則被列進每日執行紀律，見 `governance/agent-discipline.md` 1.3 節——原因是它直接決定了之後還原能不能乾淨執行。
 
 ## 禁止事項
 
 - 不得提交任何密鑰、憑證、內部網址、個資（見 `governance/security.md`）
-- 不得提交產生物（build artifact）、暫存檔，應在 `.gitignore` 排除
-- AI 產生的 commit 若包含未經人類確認的假設，需在 body 中明確標註
+- 不得 commit 建置成品（build artifact）或暫存檔，應在 `.gitignore` 排除
+- AI 產生的 commit 若包含未經使用者確認的假設，須在 body 中明確標註
 
 ## Squash 政策
 

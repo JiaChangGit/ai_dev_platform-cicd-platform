@@ -1,22 +1,15 @@
 # AGENTS.md — <PRODUCT_NAME> 專案規範
 
-> 本專案採用 ai-dev-platform 框架（平行參考模式）。完整的 workflow /
-> governance / templates 規則都在 `../ai-dev-platform/AGENTS.md`，開始
-> 任何任務前**先讀那份文件**並遵守其中規則。以下只列本專案專屬的補充
-> 內容，不要在這裡重複共用規則——共用規則只有一份，改了要同步很麻煩。
-> 若發現自己想寫的規則其實跟產品無關，那應該回饋到 ai-dev-platform 本身
-> （見該倉庫 AGENTS.md 第 4 節），不要留在這裡。
->
-> 若改用內嵌模式（見 ai-dev-platform 的 AGENTS.md 第 3 節），把上面
-> `../ai-dev-platform/AGENTS.md` 換成實際內嵌路徑（例如 `.ai/AGENTS.md`），
-> 下面 CLAUDE.md.template、opencode.json.template 裡的路徑也要一併換掉。
+> 本專案固定讀取 `../ai-dev-platform/AGENTS.md` 的目前版本。開始任務前先讀取
+> 該文件，再讀本文件的產品專屬規則。產品儲存庫不得複製平台規則、`external/`
+> 或第三方 skill，也不建立平台 lock file。
 
 ## 專案基本資訊
 
 - 產品：<PRODUCT_NAME>，<PRODUCT_TYPE>（例如 Android App / kernel module / web service）
 - 目標平台：<PLATFORM>
 - 語言/框架：<LANGUAGE_FRAMEWORK>
-- 既有程式碼庫：<有 / 沒有，若有簡述現況>
+- CI 系統：<CI_SYSTEM>
 
 ## 領域規範
 
@@ -26,16 +19,16 @@
 
 ## 外部框架（選用）
 
-若此專案有啟用 grill-with-docs / OpenSpec / superpowers，見 `../ai-dev-platform/docs/external-frameworks.md`；沒啟用的話刪掉這一節。
+若專案啟用 grill-with-docs、OpenSpec 或 superpowers，使用方式以 `../ai-dev-platform/docs/external-frameworks.md` 的目前內容為準。
 
 ## 專案專屬指令
 
 - Build: `<BUILD_COMMAND>`
 - Test: `<TEST_COMMAND>`
 - Lint: `<LINT_COMMAND>`
+- Package: `<PACKAGE_COMMAND>`
+- Artifact path: `<ARTIFACT_PATH>`
 
 ## 專案專屬補充規則
 
-（這裡放真的只適用這個產品、無法歸進 ai-dev-platform 共用規則的內容，
-例如內部服務的呼叫慣例、特定 CI runner 的限制。沒有的話刪掉這一節，
-不要留著空節。）
+（此處只放產品專屬規則，例如內部服務呼叫慣例或特定 CI runner 限制。）

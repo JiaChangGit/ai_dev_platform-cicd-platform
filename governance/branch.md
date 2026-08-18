@@ -10,7 +10,8 @@
 | `bugfix` | 修正 bug | `bugfix/null-pointer-on-empty-input` |
 | `hotfix` | 正式環境緊急修復，直接從 release 分支切出 | `hotfix/crash-on-startup` |
 | `release` | 發布準備分支 | `release/1.4.0` |
-| `chore` | 雜項（依賴升級、CI 設定等） | `chore/bump-deps` |
+| `chore` | 雜項（相依套件升級、CI 設定等） | `chore/bump-deps` |
+| `agent` | AI 代理人依使用者授權建立的短期分支 | `agent/harden-release-gates` |
 
 - 分支名不放人名、日期、issue 系統以外的識別碼
 - 若有對應 issue 編號，可加在描述前：`feature/123-photo-scene-description`
@@ -23,7 +24,7 @@
 - 需要同時對外支援多個穩定版本
 - 發布週期長、且舊版本仍需要收 hotfix
 
-實際採用哪種策略，在產品倉庫的 `docs/domain-standards.md` 或架構文件中明確記錄，不要中途混用不說明。
+實際採用哪種策略，在產品儲存庫的 `docs/domain-standards.md` 或架構文件中明確記錄，不要中途混用不說明。
 
 ## 保護規則（建議預設值，依團隊規模調整）
 

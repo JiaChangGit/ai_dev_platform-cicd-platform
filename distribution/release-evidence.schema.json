@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI Dev Platform release evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "product", "version", "source", "artifact",
+    "verification", "sbom", "provenance", "approval", "release"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "product": { "type": "string", "minLength": 1 },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit", "ref"],
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "commit": { "type": "string", "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$" },
+        "ref": { "type": "string", "pattern": "^refs/(?:heads/(?:main|release/.+)|tags/v.+)$" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri", "sha256", "immutable", "signatureUri", "signatureSha256", "signatureAlgorithm"
+      ],
+      "properties": {
+        "uri": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "immutable": { "const": true },
+        "signatureUri": { "type": "string", "minLength": 1 },
+        "signatureSha256": { "$ref": "#/$defs/sha256" },
+        "signatureAlgorithm": { "const": "openssl-sha256" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ciSystem", "runId", "checks"],
+      "properties": {
+        "ciSystem": { "type": "string", "minLength": 1 },
+        "runId": { "type": "string", "minLength": 1 },
+        "checks": {
+          "type": "array", "minItems": 5, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "sbom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uri", "sha256", "format"],
+      "properties": {
+        "uri": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "format": { "enum": ["spdx-json", "cyclonedx-json"] }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uri", "sha256", "predicateType"],
+      "properties": {
+        "uri": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "predicateType": { "const": "https://slsa.dev/provenance/v1" }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "approvedBy"],
+      "properties": {
+        "status": { "const": "approved" },
+        "approvedBy": { "type": "string", "minLength": 1 }
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["publisher"],
+      "properties": { "publisher": { "type": "string", "minLength": 1 } }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

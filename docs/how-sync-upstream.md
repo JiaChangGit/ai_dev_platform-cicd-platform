@@ -1,20 +1,22 @@
 # 如何同步上游（git subtree）
 
+本文件只適用於開發下一版平台的 Git 維護儲存庫。下載後的唯讀 `ai-dev-platform/` 已內含預設離線第三方 skill；完整 Cookbook 可由選用套件提供。使用者不需要、也不應執行 `git init`、`scripts/sync.sh add` 或 `pull`。
+
 ## 為什麼用 subtree 不用 submodule
 
-| | git submodule | git subtree（本倉庫採用） |
+| | git submodule | git subtree（本儲存庫採用） |
 |---|---|---|
-| 內容是否實際進倉庫 | 否，只存指標（commit hash） | 是，檔案實際併入 |
+| 內容是否實際進儲存庫 | 否，只存指標（commit hash） | 是，檔案實際併入 |
 | `git clone` 後內容是否完整 | 否，需額外 `git submodule update --init` | 是，直接就有 |
 | 下載 ZIP（GitHub 網頁 / `git archive`） | `external/` 會是空的 | `external/` 是完整內容 |
-| 倉庫體積 | 小 | 較大（含第三方歷史或快照） |
+| 儲存庫體積 | 小 | 較大（含第三方歷史或快照） |
 | 更新上游 | `git submodule update --remote` | `scripts/sync.sh pull` |
 
-因為需求明確要「能直接下載成壓縮檔」，所以本倉庫選 subtree。
+因為需求明確要「能直接下載成壓縮檔」，所以本儲存庫選 subtree。
 
-## 加入一個新的第三方倉庫
+## 加入一個新的第三方儲存庫
 
-1. 先把目標倉庫 fork 到自己的 GitHub 帳號/組織（這樣才能之後用 subtree push 貢獻回去，也避免直接依賴他人倉庫的變動）
+1. 先將目標儲存庫 fork 到自己的 GitHub 帳號或組織，之後才能使用 subtree push 回傳貢獻，也能避免上游未預期的變動直接影響平台
 2. 在 `external/subtrees.yaml` 新增一個項目：
 
    ```yaml
@@ -39,9 +41,9 @@
 
    內部等同於：`git subtree add --prefix=external/<目錄名> <repo> <branch> --squash`
 
-## 只同步第三方倉庫的「一部分」
+## 只同步第三方儲存庫的「一部分」
 
-`scripts/sync.sh` 同步的是上游倉庫在某個分支上的**整個檔案樹**。如果只想要上游倉庫裡的某個子資料夾（例如一個大型 skill 集合裡的其中一個 skill），標準做法是先在上游的複本上「切」出只含那個子資料夾歷史的分支，再照一般流程同步那個分支——`external/subtrees.yaml` 與 `scripts/sync.sh` 完全不需要修改，因為對它們來說，一個「切過的分支」跟一般分支沒有差別。
+`scripts/sync.sh` 會同步上游儲存庫指定分支的完整檔案樹。只需要其中一個子目錄時，先在上游複本建立只含該子目錄歷程的分支，再依一般流程同步。`external/subtrees.yaml` 與 `scripts/sync.sh` 不需修改。
 
 ### 首次同步某個子資料夾
 
@@ -83,7 +85,7 @@
    scripts/sync.sh add skill-a
    ```
 
-   結果 `external/skill-a` 只會有 `skill-a/` 原本的內容，`some-repo` 其他資料夾不會進來。
+   完成後，`external/skill-a` 只包含原 `skill-a/` 的內容，不會包含 `some-repo` 的其他目錄。
 
 ### 之後同步上游更新
 
@@ -101,7 +103,7 @@ git push origin extract-skill-a
 
 > 註：`git pull upstream main` 假設你已經在這個 clone 裡把原始上游加成第二個 remote：`git remote add upstream https://github.com/anthropics/skills.git`（把網址換成實際上游）。這樣你的 fork 落後上游時，才能先同步 fork、再切分支。
 
-### 同時追蹤多個第三方倉庫的多個子資料夾
+### 同時追蹤多個第三方儲存庫的多個子資料夾
 
 `external/subtrees.yaml` 本來就是清單，重複上面的流程、每個子資料夾各自一個項目即可：
 
@@ -120,7 +122,7 @@ subtrees:
 
 `scripts/sync.sh add`（不帶名稱）會依序處理清單中所有項目；`scripts/sync.sh add <name>` 只處理單一項目。
 
-## 拉取上游更新（整個倉庫）
+## 拉取上游更新（整個儲存庫）
 
 ```bash
 scripts/sync.sh pull <目錄名>
@@ -136,11 +138,11 @@ subtree 支援反向推送，但 `scripts/sync.sh` 目前不封裝這個操作�
 git subtree push --prefix=external/<目錄名> <你的 fork 的 repo url> <branch>
 ```
 
-之後在該第三方倉庫另外開 PR 給原始上游。
+之後在該第三方儲存庫另外開 PR 給原始上游。
 
 ## 衝突處理
 
-`--squash` 模式下，pull 若遇到本地對 `external/<目錄名>` 有手動修改、又跟上游變更衝突，行為與一般 `git merge` 衝突相同：手動解決衝突檔案後 `git commit` 完成合併。建議盡量不要手動修改 `external/` 底下的內容，若真的需要客製，優先考慮在自己 fork 上改，再同步下來。
+`--squash` 模式下，若 `external/<目錄名>` 的本地修改與上游衝突，處理方式與一般 `git merge` 相同：解決衝突後執行 `git commit`。原則上不直接修改 `external/`；需要客製時，先在自己的 fork 修改，再同步回平台。
 
 ## 移除一個 subtree
 

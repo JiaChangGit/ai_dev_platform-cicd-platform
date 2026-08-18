@@ -1,10 +1,10 @@
-# AI 代理人如何使用這個倉庫
+# AI 代理人如何使用這個儲存庫
 
-> 你是怎麼「進到」這個倉庫的內容的？Codex、opencode 原生讀取根目錄 `AGENTS.md`；Claude Code 透過根目錄 `CLAUDE.md` 的 `@AGENTS.md` 匯入語法。三者最終看到的是同一份內容。細節見 `docs/tool-compatibility.md`。
+> 你是怎麼「進到」這個儲存庫的內容的？Codex、opencode 原生讀取根目錄 `AGENTS.md`；Claude Code 透過根目錄 `CLAUDE.md` 的 `@AGENTS.md` 匯入語法。三者最終看到的是同一份內容。細節見 `docs/tool-compatibility.md`。
 
 ## 讀取順序
 
-1. `AGENTS.md`（永遠先讀這份，是整個倉庫的入口）
+1. `AGENTS.md`（主要入口，開始任務時優先讀取）
 2. 依任務類型查 `registry/workflow.yaml`，取得該讀哪些 `workflow/` 與 `governance/` 文件
 3. 需要模板時查 `templates/`
 4. 需要決定「這個子任務該用哪個角色/模型」時查 `registry/providers.yaml`
@@ -22,5 +22,5 @@
 若使用 `registry/providers.yaml` 定義的多角色分工（例如一個模型負責規劃、一個負責實作、一個負責驗證），且該任務在 `registry/workflow.yaml` 中 `handoff_required: true`：
 
 - 交接時依 `templates/task-handoff.md` 產出實體交接檔案，把上一個角色的產出（設計決策、假設、未解問題）寫下來帶到下一個角色，不要靠對話上下文口頭交接——多數 CLI 呼叫是無狀態的，沒寫下來的東西下一輪就不存在了
-- 若角色間對某個決定有分歧，記錄在交接檔案裡，必要時升級給人類裁定（見 `governance/review.md` 的升級機制）
+- 若角色間對某個決定有分歧，記錄在交接檔案裡，必要時升級給人員裁定（見 `governance/review.md` 的升級機制）
 - 若其中一個角色要扮演 reviewer，額外確認符合 `governance/review.md` 的 AI reviewer 最低獨立性要求——不能是同一個 context 順便自己審自己

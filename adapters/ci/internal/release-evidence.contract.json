@@ -1,0 +1,20 @@
+{
+  "requiredInputs": [
+    "sourceRepository",
+    "sourceCommit",
+    "sourceRef",
+    "artifactUri",
+    "artifactSha256",
+    "artifactSignatureUri",
+    "artifactSignatureSha256",
+    "checks",
+    "sbomUri",
+    "sbomSha256",
+    "provenanceUri",
+    "provenanceSha256",
+    "approval",
+    "publisher"
+  ],
+  "output": "release-evidence.json",
+  "deliveryRule": "發行儲存庫須驗證所有必要輸入，通過後才能推進正式發行"
+}

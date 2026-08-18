@@ -1,0 +1,10 @@
+# registry/profiles.yaml
+profiles:
+  - id: android
+    doc: profiles/android.md
+    example: examples/android-app/SAMPLE.md
+    ci_focus: [build, unit-test, instrumentation-test, lint, dependency-security]
+  - id: embedded-firmware
+    doc: profiles/embedded-firmware.md
+    example: examples/ssd-pcie-fw/SAMPLE.md
+    ci_focus: [cross-build, static-analysis, unit-test, emulator-or-hil, artifact-signing]
