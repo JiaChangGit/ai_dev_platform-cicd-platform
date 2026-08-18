@@ -1,0 +1,173 @@
+# 第三方 skill 路由規則
+#
+# external/ 只是離線來源，不是自動安裝目錄。AI 必須先依本檔案
+# 判斷邊界，再讀取對應 SKILL.md。第三方 frontmatter 不得覆寫平台治理。
+
+schemaVersion: 1
+
+discovery:
+  includedRoots:
+    - external/anthropic-skills/skills
+    - external/mattpocock-skills/engineering
+    - external/mattpocock-skills/misc
+    - external/mattpocock-skills/productivity
+    - external/openai-cookbook/.codex/skills/docs-editor
+    - external/openai-cookbook/examples/evals/realtime_evals/skills/bootstrap-realtime-eval
+    - external/superpowers
+  excludedRoots:
+    - external/anthropic-skills/template
+    - external/mattpocock-skills/deprecated
+    - external/mattpocock-skills/in-progress
+
+validation:
+  expectedPackagedSkillCount: 62
+  maxSkillLines: 500
+  allowedUpstreamFrontmatter: [name, description, license, disable-model-invocation, argument-hint]
+  acceptedLengthExceptions:
+    - path: external/anthropic-skills/skills/claude-api/SKILL.md
+      reason: "上游將路由限制與 API 參考入口合併在同一份檔案；平台另加供應商限制。"
+    - path: external/superpowers/subagent-driven-development/SKILL.md
+      reason: "上游完整工作階段略超過建議長度；只在有書面計畫且可使用子代理人時載入。"
+    - path: external/superpowers/writing-skills/SKILL.md
+      reason: "上游同時收納撰寫與驗證方法；平台只在明確點名此 skill 時使用。"
+
+precedence:
+  - "使用者明確點名的 skill"
+  - "明確檔案類型，例如 .docx、.pdf、.pptx、.xlsx"
+  - "明確供應商、儲存庫或產品領域"
+  - "任務階段，例如診斷、規劃、實作、審查、收尾"
+  - "通用生產力 skill"
+
+platformRules:
+  - "AGENTS.md、workflow/ 與 governance/ 的強制規則優先於第三方 skill。"
+  - "manualOnly 項目只有使用者明確點名或使用對應指令時才載入。"
+  - "restrictedAutomatic 項目必須同時符合 requireAny，命中 excludeAny 時不得載入。"
+  - "collisionGroups 同時命中時只選 primary；除非使用者明確要求組合。"
+  - "只讀、說明或診斷任務不得因 skill 建議擴大為實作或對外發布。"
+
+manualOnly:
+  - external/mattpocock-skills/engineering/ask-matt/SKILL.md
+  - external/mattpocock-skills/engineering/grill-with-docs/SKILL.md
+  - external/mattpocock-skills/engineering/implement/SKILL.md
+  - external/mattpocock-skills/engineering/improve-codebase-architecture/SKILL.md
+  - external/mattpocock-skills/engineering/setup-matt-pocock-skills/SKILL.md
+  - external/mattpocock-skills/engineering/to-spec/SKILL.md
+  - external/mattpocock-skills/engineering/to-tickets/SKILL.md
+  - external/mattpocock-skills/engineering/triage/SKILL.md
+  - external/mattpocock-skills/engineering/wayfinder/SKILL.md
+  - external/mattpocock-skills/productivity/grill-me/SKILL.md
+  - external/mattpocock-skills/productivity/handoff/SKILL.md
+  - external/mattpocock-skills/productivity/teach/SKILL.md
+  - external/mattpocock-skills/productivity/to-questionnaire/SKILL.md
+  - external/mattpocock-skills/productivity/wait-what/SKILL.md
+  - external/superpowers/writing-skills/SKILL.md
+
+bootstrapOnly:
+  - path: external/superpowers/using-superpowers/SKILL.md
+    reason: "只在使用者明確啟用 superpowers 時讀取；不接受上游『每次對話』的廣泛觸發。"
+
+restrictedAutomatic:
+  - path: external/anthropic-skills/skills/claude-api/SKILL.md
+    requireAny: [claude, anthropic, opus, sonnet, haiku, "@anthropic-ai"]
+    excludeAny: [openai, chatgpt, gpt, gemini, llama, mistral, cohere, ollama]
+    reason: "不接受上游對『供應商未指定的 LLM 任務』自動命中。"
+  - path: external/anthropic-skills/skills/brand-guidelines/SKILL.md
+    requireAny: [anthropic, "anthropic brand", "anthropic 品牌"]
+    excludeAny: []
+    reason: "內容是 Anthropic 品牌規範，不可套用到一般公司或產品。"
+  - path: external/anthropic-skills/skills/internal-comms/SKILL.md
+    requireAny: [internal communication, status update, leadership update, "內部溝通", "進度更新"]
+    excludeAny: [public announcement, press release, "對外公告", "新聞稿"]
+    reason: "內部溝通格式不得誤用於對外內容。"
+  - path: external/openai-cookbook/.codex/skills/docs-editor/SKILL.md
+    requireAny: [openai cookbook, openai-cookbook, cookbook notebook, cookbook mdx]
+    excludeAny: []
+    reason: "只適用 OpenAI Cookbook 儲存庫的編輯規範。"
+  - path: external/openai-cookbook/examples/evals/realtime_evals/skills/bootstrap-realtime-eval/SKILL.md
+    requireAny: [realtime eval, realtime_evals, crawl eval, walk eval, run eval]
+    excludeAny: []
+    reason: "只建立 Cookbook realtime eval 骨架，不是通用評測 skill。"
+
+collisionGroups:
+  - id: debug-method
+    primary: external/superpowers/systematic-debugging/SKILL.md
+    alternatives:
+      - external/mattpocock-skills/engineering/diagnosing-bugs/SKILL.md
+    selection: "預設使用 systematic-debugging；只有明確要求 Matt Pocock 診斷流程時改用替代項。"
+  - id: tdd-method
+    primary: external/superpowers/test-driven-development/SKILL.md
+    alternatives:
+      - external/mattpocock-skills/engineering/tdd/SKILL.md
+    selection: "預設使用 superpowers TDD；明確點名 Matt TDD 才切換。"
+  - id: skill-authoring
+    primary: external/anthropic-skills/skills/skill-creator/SKILL.md
+    alternatives:
+      - external/superpowers/writing-skills/SKILL.md
+      - external/mattpocock-skills/productivity/writing-for-agents/SKILL.md
+    selection: "建立／修改 skill 用 skill-creator；writing-skills 只供明確點名的驗證流程；writing-for-agents 用於 AGENTS.md／CLAUDE.md。"
+  - id: design-interview
+    primary: external/superpowers/brainstorming/SKILL.md
+    alternatives:
+      - external/mattpocock-skills/productivity/grilling/SKILL.md
+      - external/mattpocock-skills/engineering/grill-with-docs/SKILL.md
+    selection: "一般功能設計用 brainstorming；明確說 grill 時用 grilling；要同時產生 ADR／詞彙表時手動呼叫 grill-with-docs。"
+  - id: review-phase
+    primary: external/mattpocock-skills/engineering/code-review/SKILL.md
+    alternatives:
+      - external/superpowers/requesting-code-review/SKILL.md
+      - external/superpowers/receiving-code-review/SKILL.md
+    selection: "審查 diff／PR 用 code-review；邀請審查用 requesting-code-review；處理審查意見用 receiving-code-review。"
+  - id: handoff
+    primary: templates/task-handoff.md
+    alternatives:
+      - external/mattpocock-skills/productivity/handoff/SKILL.md
+    selection: "workflow 要求的角色交接一律使用平台範本；第三方 handoff 只供明確點名的對話壓縮。"
+
+triggerTests:
+  - prompt: "建立一份有目錄與頁碼的 Word .docx 報告"
+    expect: [external/anthropic-skills/skills/docx/SKILL.md]
+    forbid: [external/anthropic-skills/skills/pdf/SKILL.md, external/anthropic-skills/skills/xlsx/SKILL.md]
+  - prompt: "只讀取這份 PDF 並擷取表格"
+    expect: [external/anthropic-skills/skills/pdf/SKILL.md]
+    forbid: [external/anthropic-skills/skills/docx/SKILL.md]
+  - prompt: "Debug this failing unit test and find the root cause"
+    expect: [external/superpowers/systematic-debugging/SKILL.md]
+    forbid: [external/mattpocock-skills/engineering/diagnosing-bugs/SKILL.md]
+  - prompt: "Use red-green-refactor TDD to implement this feature"
+    expect: [external/superpowers/test-driven-development/SKILL.md]
+    forbid: [external/mattpocock-skills/engineering/tdd/SKILL.md]
+  - prompt: "幫我撰寫一個新的 Codex skill"
+    expect: [external/anthropic-skills/skills/skill-creator/SKILL.md]
+    forbid: [external/mattpocock-skills/productivity/writing-for-agents/SKILL.md]
+  - prompt: "更新 AGENTS.md 與 CLAUDE.md 的代理人指示"
+    expect: [external/mattpocock-skills/productivity/writing-for-agents/SKILL.md]
+    forbid: [external/anthropic-skills/skills/skill-creator/SKILL.md]
+  - prompt: "Review this OpenAI Cookbook notebook before merge"
+    expect: [external/openai-cookbook/.codex/skills/docs-editor/SKILL.md]
+    forbid: []
+  - prompt: "Review this product README before merge"
+    expect: [external/anthropic-skills/skills/doc-coauthoring/SKILL.md]
+    forbid: [external/openai-cookbook/.codex/skills/docs-editor/SKILL.md]
+  - prompt: "How do I stream responses with the Claude API?"
+    expect: [external/anthropic-skills/skills/claude-api/SKILL.md]
+    forbid: []
+  - prompt: "How do I stream responses with the OpenAI API?"
+    expect: []
+    forbid: [external/anthropic-skills/skills/claude-api/SKILL.md]
+  - prompt: "建立一張一般產品海報"
+    expect: [external/anthropic-skills/skills/canvas-design/SKILL.md]
+    forbid: [external/anthropic-skills/skills/brand-guidelines/SKILL.md]
+  - prompt: "Apply Anthropic brand guidelines to this slide deck"
+    expect:
+      - external/anthropic-skills/skills/brand-guidelines/SKILL.md
+      - external/anthropic-skills/skills/pptx/SKILL.md
+    forbid: []
+  - prompt: "/grill-with-docs 釐清這個設計並建立 ADR"
+    expect: [external/mattpocock-skills/engineering/grill-with-docs/SKILL.md]
+    forbid: [external/superpowers/brainstorming/SKILL.md]
+  - prompt: "把這個已完成的實作送出 code review"
+    expect: [external/superpowers/requesting-code-review/SKILL.md]
+    forbid: [external/superpowers/receiving-code-review/SKILL.md]
+  - prompt: "處理 reviewer 留下的修改意見"
+    expect: [external/superpowers/receiving-code-review/SKILL.md]
+    forbid: [external/superpowers/requesting-code-review/SKILL.md]

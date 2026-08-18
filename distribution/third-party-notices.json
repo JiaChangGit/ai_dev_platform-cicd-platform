@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "purpose": "列出預設離線平台包內的第三方 skill、同步來源與授權證據。",
+  "entries": [
+    {
+      "id": "anthropic-skills",
+      "path": "external/anthropic-skills",
+      "syncRepository": "https://github.com/JiaChangGit/anthropic-skills.git",
+      "branch": "main",
+      "snapshotTree": "0fe4c0c8372b239b13062036d08d05f79d4055a1",
+      "licenseEvidence": "external/anthropic-skills/THIRD_PARTY_NOTICES.md",
+      "distributionMode": "default",
+      "packagedPaths": [
+        "external/anthropic-skills/THIRD_PARTY_NOTICES.md",
+        "external/anthropic-skills/skills"
+      ]
+    },
+    {
+      "id": "openai-cookbook",
+      "path": "external/openai-cookbook",
+      "syncRepository": "https://github.com/JiaChangGit/openai-cookbook.git",
+      "branch": "main",
+      "snapshotTree": "64fd4b78e14b217cd08fde60cf2b7a1f77a873c1",
+      "licenseEvidence": "external/openai-cookbook/LICENSE",
+      "distributionMode": "selected-skills-default-full-snapshot-optional",
+      "packagedPaths": [
+        "external/openai-cookbook/LICENSE",
+        "external/openai-cookbook/README.md",
+        "external/openai-cookbook/.codex/skills/docs-editor",
+        "external/openai-cookbook/examples/evals/realtime_evals/skills/bootstrap-realtime-eval"
+      ]
+    },
+    {
+      "id": "mattpocock-skills",
+      "path": "external/mattpocock-skills",
+      "syncRepository": "https://github.com/JiaChangGit/skills.git",
+      "branch": "extract-mattpocock-skills",
+      "snapshotTree": "fe2200a2b57f8846f93e70d54ee3467e08e6507c",
+      "licenseEvidence": "external/mattpocock-skills/LICENSE",
+      "distributionMode": "default",
+      "packagedPaths": [
+        "external/mattpocock-skills/LICENSE",
+        "external/mattpocock-skills/engineering",
+        "external/mattpocock-skills/misc",
+        "external/mattpocock-skills/productivity"
+      ]
+    },
+    {
+      "id": "superpowers",
+      "path": "external/superpowers",
+      "syncRepository": "https://github.com/JiaChangGit/superpowers.git",
+      "branch": "extract-skills",
+      "snapshotTree": "c09d9ac45c6f4f3004dbc61775dcf1089df2c40c",
+      "licenseEvidence": "external/superpowers/LICENSE",
+      "distributionMode": "default",
+      "packagedPaths": ["external/superpowers"]
+    }
+  ]
+}

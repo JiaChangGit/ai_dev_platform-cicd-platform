@@ -2,7 +2,7 @@
 
 用於 `registry/workflow.yaml` 中 `handoff_required: true` 的任務，在角色交接（例如 planner → implementer、implementer → verifier）時產出。**寫成實體檔案**，不要只留在對話紀錄裡——CLI 呼叫通常是無狀態的，下一個角色開新的 context 時看不到上一輪的對話，只看得到檔案。
 
-建議存放位置：產品倉庫的 `.ai/handoffs/<task-id>/<seq>-<from-role>-to-<to-role>.md`（任務結束後可歸檔或刪除，不需要長期保留在主要文件樹中）。
+建議存放位置：產品儲存庫的 `.ai/handoffs/<task-id>/<seq>-<from-role>-to-<to-role>.md`（任務結束後可歸檔或刪除，不需要長期保留在主要文件樹中）。
 
 ```markdown
 # Handoff: <task-id> — <from-role> → <to-role>
@@ -17,7 +17,7 @@
 （做了哪些選擇、為什麼這樣選、有沒有考慮過其他做法但放棄了——下一個角色不該重新猜一次）
 -
 
-## 明確假設（尚未經人類確認）
+## 明確假設（尚未經使用者確認）
 （任何「我先假設是這樣做下去」的地方，明確列出來，讓下一個角色知道這不是已確認的事實）
 -
 

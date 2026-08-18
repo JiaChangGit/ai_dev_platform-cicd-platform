@@ -24,13 +24,12 @@ subtrees:
     branch: main
     prefix: external/openai-cookbook
 
-  # 以下兩項是子資料夾 subtree split 的案例（不是整個上游倉庫），
-  # branch 不是上游的預設分支，是你自己切出來、推上 fork 的分支名稱，
-  # 逐步操作見 external/mattpocock-skills/PENDING.md、external/superpowers/PENDING.md
+  # 以下兩項是已同步的子資料夾 subtree split（不是整個上游倉庫）。
+  # branch 不是上游的預設分支，是 fork 內保存子樹歷程的分支名稱。
   #
   # mattpocock-skills 同步的是整個 skills/ 資料夾而不是只有 grill-with-docs，
   # 原因是 grill-with-docs 依賴同倉庫內另外兩個不同層級的技能資料夾，沒有比
-  # skills/ 更小的共同上層資料夾能一次涵蓋，細節見該目錄的 PENDING.md
+  # skills/ 更小的共同上層資料夾能一次涵蓋。
   - name: mattpocock-skills
     repo: https://github.com/JiaChangGit/skills.git
     branch: extract-mattpocock-skills

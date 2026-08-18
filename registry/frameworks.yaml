@@ -10,13 +10,13 @@
 # 欄位：
 #   id                   唯一識別碼
 #   owns_layer           在「語意對齊/規格管理/執行紀律」三層中屬於哪一層
-#   source_repo          上游原始倉庫；列在這裡不代表已安裝，安裝流程一律見
+#   source_repo          上游原始儲存庫；列在這裡不代表已安裝，安裝流程一律見
 #                         docs/external-frameworks.md
 #   subtree_ref          若有 external/ 底下的 subtree 靜態副本，路徑為何；
 #                         null 代表這個框架不透過 subtree 分發（例如純 CLI 工具）
-#   trigger              manual：需人類手動叫用（例如打 /grill-with-docs）
+#   trigger              manual：需使用者手動呼叫（例如執行 /grill-with-docs）
 #                         automatic：工具依任務內容自動觸發，不需手動叫用
-#   produces             這個框架會寫入「產品倉庫」的產物路徑，供人類或
+#   produces             這個框架會寫入「產品儲存庫」的產出路徑，供使用者或
 #                         scripts/check.sh 之類的工具日後追查來源
 #   applies_to_workflows 對應 registry/workflow.yaml 的 workflow id，
 #                         供 AI 判斷這個任務類型可能用得上哪個框架
@@ -25,7 +25,7 @@ frameworks:
   - id: grill-with-docs
     owns_layer: semantic-alignment
     source_repo: https://github.com/mattpocock/skills
-    subtree_ref: external/mattpocock-skills/engineering/grill-with-docs   # 整個 external/mattpocock-skills 要一起同步，見該目錄 PENDING.md
+    subtree_ref: external/mattpocock-skills/engineering/grill-with-docs
     trigger: manual
     produces: [CONTEXT.md, CONTEXT-MAP.md, docs/adr/**]
     applies_to_workflows: [feature]

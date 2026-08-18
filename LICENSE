@@ -22,6 +22,6 @@ SOFTWARE.
 
 ---
 
-此授權只涵蓋本倉庫自身原創內容（governance/、workflow/、docs/、templates/、
+此授權只涵蓋本儲存庫自身原創內容（governance/、workflow/、docs/、templates/、
 registry/、scripts/、AGENTS.md 等）。`external/` 底下同步進來的第三方內容，
 授權條款各自獨立，見 external/README.md。

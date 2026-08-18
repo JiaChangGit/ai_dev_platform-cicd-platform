@@ -1,0 +1,7 @@
+# 平台治理、發行與第三方同步一律需要儲存庫擁有者審查。
+* @JiaChangGit
+
+/governance/ @JiaChangGit
+/distribution/ @JiaChangGit
+/external/ @JiaChangGit
+/.github/ @JiaChangGit

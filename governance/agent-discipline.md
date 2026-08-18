@@ -1,87 +1,87 @@
 # Governance：執行紀律（Agent Discipline）
 
-這份文件管的不是「規則長什麼樣子」（那是 `governance/commit.md`、`governance/review.md` 各自的事），而是「AI 代理人動手做事的當下，有哪三件事不能省」。前兩節是動手做的時候要守的紀律，第三節是東西壞掉之後怎麼救。跟其他 `governance/*.md` 重疊的地方一律用連結帶過，不重講第二次。
+本文件定義 AI 代理人的執行紀律、完成條件與異常還原方式。commit 與審查的詳細規則分別以 `governance/commit.md`、`governance/review.md` 為準。
 
 ## 1. 每日執行紀律
 
-寫程式碼的過程中，以下三條沒有例外，適用所有領域（Android app 或 kernel module 都一樣）：
+下列三項規則適用於所有產品領域。
 
-### 1.1 測試在同一輪對話補完，不要拖到下一個任務
+### 1.1 同一輪工作完成測試
 
-改動程式碼的那一輪對話，就要把對應的測試寫完、跑過，不是「先讓功能動起來，測試另外開一個 task 統一補」。拖到之後補的測試，十次有八次補的是「程式碼實際做了什麼」，而不是「原本應該做什麼」——這樣測試只會證明 bug 存在得很穩定，抓不到真正的錯誤。
+修改程式碼時，必須在同一輪工作中完成並執行對應測試。延後補測試容易讓測試只反映現有實作，無法驗證原始需求。
 
-`workflow/feature.md`、`workflow/bugfix.md` 的步驟本來就把寫測試放在同一個流程裡；這條規則要強調的是**順序不能倒**：先有能通過的測試，才算這個改動做完，不是先交差、測試留到「之後」。
+`workflow/feature.md` 與 `workflow/bugfix.md` 已將測試納入同一流程。對應測試通過前，變更不視為完成。
 
-### 1.2 找得到對應的 Skill 或 sub-agent，優先指派，不要現場從頭想
+### 1.2 優先使用已登記的 skill 或子代理人
 
-動手前先確認：這個子任務是不是已經在 `registry/skills.yaml` 登記過、或符合 `registry/providers.yaml` 裡某個角色的定義。如果有，指派給它，不要每次都用同一個通用 context 現場即興處理——原因不是效率，是**一致性**：專門的 skill/sub-agent 每次用同樣的方式處理同一類子任務，通用 context 現場想的做法容易每次不一樣，難以預期、難以複查。
+開始前先確認子任務是否已登記於 `registry/skills.yaml`，或符合 `registry/providers.yaml` 的角色定義。若有對應項目，依其固定流程處理，以維持結果一致且可複查。
 
 典型會用到專門 skill/sub-agent 的情境：
 
-- 產出特定格式文件（Word / PDF / 簡報）——對應 `registry/skills.yaml` 登記的 skill
-- 一段可以獨立跑完、結果可驗證、不需要主線 context 記住過程細節的子任務（例如「找出這個 bug 在哪個 commit 引入的」）——適合丟給隔離 context 的 sub-agent，跑完只帶結果回主線，不把過程中翻的幾十個檔案塞滿主線 context
-- 明確對應 `registry/providers.yaml` 某個角色（planner / implementer / verifier / reviewer / researcher）的階段性工作——依 `AGENTS.md` 2.1 節的交接方式處理
+- 產生特定格式文件（Word／PDF／簡報）：使用 `registry/skills.yaml` 登記的 skill
+- 可獨立完成且結果可驗證的子任務：可交由隔離工作階段的子代理人處理，只回傳必要結果
+- 對應 planner、implementer、verifier、reviewer 或 researcher 的階段性工作：依 `AGENTS.md` 2.1 節交接
 
-各工具實際上怎麼設定專門的 sub-agent（例如 Claude Code 的 `.claude/agents/`），機制細節見 `docs/tool-compatibility.md`；這裡管的是「什麼時候該用」，不是「怎麼設定」。
+各工具的子代理人（sub-agent）設定方式見 `docs/tool-compatibility.md`。
 
-若已安裝 superpowers（見 `docs/external-frameworks.md`），它的 subagent-driven-development 等技能是這條規則在三個目標工具上的具體實作之一；沒裝或工具不支援時，這條規則本身依然要遵守，不因為沒裝某個框架就可以省略。
+若已安裝 superpowers，可使用其 subagent-driven-development 等 skill。未安裝或工具不支援時，仍須遵守本節的分工與交接規則。
 
 ### 1.3 一個邏輯改動一個 commit
 
-規則本身在 `governance/commit.md` 的「原子性」——這裡只講為什麼這條規則被列進每日紀律：**這是回滾能不能乾淨執行的前提**。AI 沒有明確規則時，常常一次改十幾個檔案塞進一個 commit；等到某一段需要單獨撤銷時，才發現邏輯上不相關的東西全部綁在一起，沒辦法乾淨拆開。
+原子 commit 是精準還原的前提。不同邏輯的變更若放在同一個 commit，後續將無法只撤銷其中一項。完整規則見 `governance/commit.md`。
 
-判斷「算不算同一個邏輯改動」的簡單測試：**這個 commit 需要的說明，能不能用一句話講完，且這句話裡沒有「而且」「順便」**。例如：
+判斷方式：commit 說明應能用一句話描述，且不包含第二個獨立目的。例如：
 
 - 補 A 元件的測試 → 一個 commit
-- 修 B 路由的 bug → 另一個 commit（不要跟上面那個擠在一起，即使剛好是同一輪對話做的）
+- 修 B 路由的 bug → 另一個 commit
 - 重構 C 共用邏輯 → 另一個 commit
 
-第 3 節的回滾決策表，前提都是這條規則有被遵守。
+第 3 節的還原決策表，前提都是這條規則有被遵守。
 
 ## 2. 收尾驗證：三層安全網
 
-程式碼寫完、上一節的紀律也守了，不代表這個任務結束。合併前要過三層驗證，每一層抓的失誤類型不一樣，不能用其中一層取代另一層：
+合併前須完成下列三層驗證。每一層處理不同風險，不可互相取代。
 
 ### 2.1 第一層：typecheck → test → build
 
 依序跑三段，任一段沒過就不算通過：
 
-| 階段 | 抓什麼 | 例子 |
+| 階段 | 驗證目標 | 例子 |
 |---|---|---|
 | typecheck / 靜態檢查 | 型別/介面層級的錯誤 | 把物件傳給只接受字串的函式；C 專案對應 `-Wall -Werror` 或 sparse 這類靜態分析，不是只有有型別系統的語言才有這一層 |
 | test | 行為層級的錯誤 | 改了一個函式，該回傳 true 的情境變成回傳 false，但型別完全正確、編譯得過 |
-| build | 打包/發布層級才會爆的錯誤 | import 路徑在 dev/debug 模式跑得動，release/production build 卻失敗；kernel 模組對應「用實際目標核心版本重新編譯過一次」，不能只信任開發機上跑過 |
+| build | 打包或發布時才出現的錯誤 | import 路徑在 dev/debug 模式可用，但 release/production build 失敗；kernel 模組須以實際目標核心版本重新編譯 |
 
 三段對應到 `workflow/feature.md`、`workflow/bugfix.md` 的驗證步驟；這裡的重點是**三段都要做，不能因為 test 過了就跳過 build**。
 
 ### 2.2 第二層：審查要獨立，不能自己審自己
 
-完整規則在 `governance/review.md` 的「AI 擔任 reviewer 時的最低獨立性要求」，不重複。這裡補一句為什麼：同一個 context 剛寫完程式碼，馬上被要求審查同一段程式碼，會有 confirmation bias——傾向確認「我剛剛做的是對的」，而不是真的去找問題。這也是為什麼獨立性要求寫的是「不同 provider 或全新 context」，而不是「同一個 session 裡再問一次」。
+同一工作階段完成實作後立即審查相同內容，容易產生確認偏誤（confirmation bias）。審查應使用不同供應商或全新工作階段。完整規則見 `governance/review.md`。
 
-### 2.3 第三層：版本號、套件名、API 自己去對一次官方來源
+### 2.3 第三層：向官方來源核對版本與 API
 
-`docs/domain-adaptation.md` 教的是**專案剛開始時**怎麼查一次領域慣例；這一層講的是**每次寫程式碼引用到具體版本號、套件名、API 用法**時，都要當場去對照官方文件，不要直接讓訓練資料裡的記憶進專案——這類資訊更新速度比領域慣例快很多，「大方向的慣例沒變」不代表「上次記得的版本細節還是對的」。
+每次引用具體版本號、套件名稱或 API 用法時，都須查閱當下的官方文件。這類資訊更新頻率高，不得只依模型記憶決定。
 
-沒過這一層最常見的失誤模式：套件版本號記錯、API 參數順序或必填欄位記錯、雲端服務後台介面路徑記錯（介面改版比 API 常見）。這些都是「聽起來很合理、實際上是幻覺」的內容，只有去源頭對照才抓得出來。
+常見錯誤包含套件版本、API 參數順序、必要欄位及雲端服務介面路徑錯誤。核對結果須保留官方來源。
 
-**查不到來源的時候**，流程不一樣，不能沿用上面「查一次就好」的邏輯——常見情境是規範文件要付費會員才能取得完整條文（例如 PCI-SIG 的 PCIe 規範）、或這是團隊內部從沒寫下來的慣例、或這其實是需要人類做的商業決策：
+來源無法取得時（例如會員制規範、未文件化的團隊慣例或商業決策），依下列方式處理：
 
-1. 明確講出查不到什麼、為什麼查不到，不要含糊帶過——「可能是」「應該是」這類語氣是警訊，代表其實在猜，不是真的查到了只是講得不夠肯定
-2. 不要用「聽起來合理」的內容填空。這是本節最容易出現幻覺的地方——查不到反而比查得到更容易編出「合理但沒根據」的答案，因為沒有真的資料可以打臉
-3. 若任務 `handoff_required: true`，用 `templates/task-handoff.md` 把這個未解問題明確記下來帶到下一手；沒有多角色交接的話，直接把問題丟給人類，不要卡在原地空轉
-4. 人類回答後（或後續查到來源後），寫進產品倉庫的 `docs/domain-standards.md`（見 `docs/domain-adaptation.md`）——這步最容易被跳過，因為感覺只是臨時問一下；但團隊內規或商業決策不會出現在任何官方文件裡，這次不記下來，下次遇到同樣的問題還是得再問一次同一個人
+1. 說明缺少的資料、無法取得的原因及受影響的判斷
+2. 不以推測內容補足空缺
+3. 若任務為 `handoff_required: true`，使用 `templates/task-handoff.md` 記錄未解問題；否則直接請使用者或負責人裁定
+4. 人員回答或後續取得來源後，將結論寫入產品儲存庫的 `docs/domain-standards.md`（見 `docs/domain-adaptation.md`）。團隊內規與商業決策通常不在公開文件中，必須保留決策紀錄
 
-## 3. 失誤救援：回滾決策表
+## 3. 異常還原（Rollback）
 
-前提是第 1.3 節的原子 commit 紀律有被遵守——如果沒有，请看表格最後一列。
+下表以第 1.3 節的原子 commit 為前提；變更範圍不乾淨時，依最後一列處理。
 
 | 情境 | 建議動作 | 為什麼 |
 |---|---|---|
-| 改動還沒 commit，發現方向不對 | `git restore <file>` 或 `git stash` | 還沒進歷史，最便宜的救援 |
+| 改動還沒 commit，發現方向不對 | `git restore <file>` 或 `git stash` | 尚未進入 Git 歷程，可直接還原 |
 | 已 commit、還沒 push，只有這一個 commit | `git commit --amend` 或 `git reset --soft HEAD~1` 重寫 | 純本地歷史，改寫不影響任何人 |
 | 已 commit、還沒 push，但後面疊了好幾個 | `git rebase -i` 挑出要丟棄/合併的 commit | 前提是這幾個 commit 都還沒推上共用分支 |
 | 已 push 到自己的功能分支，還沒有人 base 在上面 | 視情況 force-push 修正後的歷史，或直接補一個新 commit 修正 | 功能分支通常只有作者在用；force-push 前務必先確認沒有協作者已經 pull 過 |
-| 已合併進 `main` 或其他共用分支 | 一律用 `git revert`，不對共用歷史做 force-push 改寫 | 共用歷史一旦改寫，其他人本地倉庫會產生衝突 |
+| 已合併進 `main` 或其他共用分支 | 一律用 `git revert`，不對共用歷史做 force-push 改寫 | 共用歷史一旦改寫，其他人本地儲存庫會產生衝突 |
 | 已合併進 `product-cicd-platform` 的 `main`，但還沒發布 | `git revert` 該 commit，重新走一次 `workflow/bugfix.md` | 靠第 1.3 節的原子 commit，revert 範圍應該剛好等於一個邏輯改動 |
-| 已發布到 `product-release` | 依 `governance/release.md` 的「回滾程序」處理，不是單純 `git revert` 能解決 | 發布後的回滾影響已經不只程式碼本身，可能牽涉已發出的產物、使用者端狀態 |
-| 問題橫跨好幾個 commit，說不出「revert 哪一個就好」 | 承認範圍不乾淨，先用一個最小的新 commit 止血，事後回頭補強第 1.3 節的紀律 | 這通常代表當初就沒有做到一個邏輯改動一個 commit；這是治標，治本是把紀律落實回去 |
+| 已發布到 `product-release` | 依 `governance/release.md` 的「還原程序」處理，不是單純 `git revert` 能解決 | 發布後的還原可能牽涉已發出的建置成品與使用者端狀態 |
+| 問題橫跨多個 commit，無法指定單一 revert 目標 | 先建立最小修正 commit，排除立即風險，再整理後續還原計畫 | 變更未依邏輯拆分，無法安全地一次還原 |

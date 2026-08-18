@@ -1,0 +1,26 @@
+name: product-release-evidence
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  verify-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Build, test, and scan
+        run: |
+          <BUILD_COMMAND>
+          <TEST_COMMAND>
+          <LINT_AND_SECURITY_COMMAND>
+      - name: Package immutable artifact
+        run: <PACKAGE_COMMAND>
+      - name: Write release evidence
+        run: <WRITE_RELEASE_EVIDENCE_JSON_COMMAND>
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-evidence
+          path: <EVIDENCE_AND_ARTIFACT_PATHS>

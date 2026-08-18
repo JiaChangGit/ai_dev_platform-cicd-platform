@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "platformId": "ai-dev-platform",
+  "version": "1.2.0",
+  "archiveRoot": "ai-dev-platform",
+  "archiveName": "ai-dev-platform-{version}.zip",
+  "include": [
+    ".editorconfig",
+    ".gitattributes",
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "SECURITY.md",
+    "opencode.json",
+    "adapters",
+    "distribution",
+    "docs",
+    "examples",
+    "external/anthropic-skills/THIRD_PARTY_NOTICES.md",
+    "external/anthropic-skills/skills",
+    "external/mattpocock-skills/LICENSE",
+    "external/mattpocock-skills/engineering",
+    "external/mattpocock-skills/misc",
+    "external/mattpocock-skills/productivity",
+    "external/superpowers",
+    "external/openai-cookbook/LICENSE",
+    "external/openai-cookbook/README.md",
+    "external/openai-cookbook/.codex/skills/docs-editor",
+    "external/openai-cookbook/examples/evals/realtime_evals/skills/bootstrap-realtime-eval",
+    "governance",
+    "profiles",
+    "registry",
+    "scripts",
+    "templates",
+    "tests",
+    "workflow"
+  ],
+  "excludeNames": [
+    ".DS_Store",
+    ".git",
+    "__pycache__"
+  ],
+  "excludeGlobs": [
+    "examples/**/build/**",
+    "examples/**/dist/**",
+    "examples/android-app/.gradle/**",
+    "examples/android-app/local.properties"
+  ]
+}

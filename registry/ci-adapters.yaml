@@ -1,0 +1,15 @@
+# registry/ci-adapters.yaml
+# 所有 adapter 都產生 docs/release-evidence.md 定義的同一份 JSON 證據；差別只在 CI 語法。
+adapters:
+  - id: github-actions
+    doc: adapters/ci/github-actions.md
+    template: adapters/ci/github-actions/release-evidence.yml.template
+  - id: gitlab-ci
+    doc: adapters/ci/gitlab-ci.md
+    template: adapters/ci/gitlab-ci/release-evidence.gitlab-ci.yml.template
+  - id: jenkins
+    doc: adapters/ci/jenkins.md
+    template: adapters/ci/jenkins/Jenkinsfile.template
+  - id: internal-ci
+    doc: adapters/ci/internal-ci.md
+    template: adapters/ci/internal/release-evidence.contract.json

@@ -1,12 +1,12 @@
-# 如何把既有專案（原本只有人類開發）導入這套框架
+# 如何將平台導入既有專案
 
-`AGENTS.md` 第 3 節的 bootstrap 流程假設是全新專案：空倉庫、`git init`、從零決定所有慣例。既有專案不是這樣——已經有 commit 歷史、團隊已經有（不一定寫下來的）慣例、很可能已經有 CI 在跑。直接照搬全新專案的流程，會跟現況硬碰硬，這份文件講差異在哪、怎麼處理。
+本文件供導入既有專案的維護者使用。既有專案已有 commit 歷程、團隊慣例或 CI，不能直接套用 `AGENTS.md` 第 3 節的全新專案流程；應先盤點差異，再逐項導入。
 
 ## 跟全新專案的差異
 
 | Bootstrap 步驟 | 全新專案 | 既有專案 |
 |---|---|---|
-| 建立倉庫 | `git init` 從零開始 | 倉庫已存在，**不動既有歷史** |
+| 建立儲存庫 | `git init` 從零開始 | 儲存庫已存在，**不動既有歷史** |
 | 入口檔 | 空白模板直接填 | 要先讀懂現況才能填 |
 | `domain-standards.md` | 只查外部文件 | 團隊內規要用訪談方式挖出來，外部文件查不到 |
 | CI | 直接建立 | **疊加**在既有 pipeline 上，不打斷現況 |
@@ -15,7 +15,7 @@
 
 ## Step 0：稽核先於一切
 
-這是既有專案獨有、全新專案沒有的一步，**不能省略**。跟 AI 說清楚：先不要動任何東西，讀完這個 repo，回報：
+這是既有專案的必要步驟。先要求 AI 只讀取儲存庫並回報下列內容，不進行修改：
 
 - 現有分支策略（有沒有明確規則，還是每個人做法不一樣）
 - 現有 commit message 習慣（是否已經接近 Conventional Commits，還是完全沒有規範）
@@ -45,7 +45,7 @@ cp ../ai-dev-platform/templates/product-entrypoint/opencode.json.template ./open
 - **調適**：現有慣例合理但跟框架預設不同（例如團隊 branch 命名習慣不一樣），寫一份 `templates/adr.md` 記錄「保留原因」——不要為了套框架硬改團隊已經穩定運作的習慣，那不是這個框架的目的
 - **暫緩**：現有做法問題不小，但改動成本或風險太高（例如牽涉到已經上線的自動化流程），先記錄成技術債，排進之後的 `workflow/feature.md` 任務，不要一次到位硬改
 
-把這三類的判斷結果整理成一份清單，放進 Step 1 建立的 `AGENTS.md` 的「專案專屬補充規則」那節，這樣之後任何人（AI 或人類）接手都看得到「為什麼跟框架預設不一樣」。
+將三類判斷結果整理成清單，放入 Step 1 建立的 `AGENTS.md`「專案專屬補充規則」。後續維護者與 AI 都能查到與平台預設不同的原因。
 
 ## Step 3：CI 只加不改，只管未來的 commit
 
@@ -55,11 +55,11 @@ cp ../ai-dev-platform/scripts/commit-lint.sh scripts/commit-lint.sh
 
 用**新增**的 CI job 疊上去，不要動既有 pipeline 的 job；一開始可以先設成非阻斷（只顯示結果不擋 merge），團隊適應一陣子後再改成必過，不要第一天就把既有工作流程卡死。
 
-**常見誤解要先澄清**：`scripts/commit-lint.sh --range` 檢查的是 PR 的 `base..head`，也就是這個 PR 新增的 commit，**不是整個倉庫的歷史**。既有專案過去不合規的 commit message 完全不受影響，不需要、也不應該去改寫歷史——改寫共用歷史本身就違反 `governance/agent-discipline.md` 第 3 節「已合併進共用分支一律用 `git revert`，不對共用歷史做 force-push 改寫」的原則。
+`scripts/commit-lint.sh --range` 只檢查 PR 的 `base..head`，也就是該 PR 新增的 commit，不檢查整個儲存庫歷程。既有的不合規 commit message 不受影響，也不得為此改寫共用歷程。詳細規則見 `governance/agent-discipline.md` 第 3 節。
 
 ## Step 4：`docs/domain-standards.md` 用訪談方式建立，不只是查外部文件
 
-`docs/domain-adaptation.md` 教的查證程序（查官方規範、找活躍倉庫觀察慣例）一樣適用，但既有專案最有價值的資訊往往是**團隊腦中沒寫下來的東西**，外部文件查不到。實際做法：讓 AI 先完整讀過程式碼，列出「這裡的做法看起來是刻意的，但找不到文件說明原因」的清單，拿去問維護者，把回答整理進 `domain-standards.md`。這比純查官方文件優先權更高，因為官方文件有辦法之後再補查，團隊內規只有現在問得到。
+`docs/domain-adaptation.md` 的查證程序同樣適用。既有專案還須盤點未文件化的團隊慣例：AI 先閱讀程式碼，列出「做法明確但找不到決策原因」的項目，再由維護者確認並寫入 `domain-standards.md`。團隊內規的確認優先於補充一般官方文件。
 
 ## Step 5：架構文件用「考古」寫法，不是設計
 
@@ -69,9 +69,9 @@ cp ../ai-dev-platform/scripts/commit-lint.sh scripts/commit-lint.sh
 
 ## Step 6-8
 
-跟全新專案的 Step 7-8（`product-release` 何時建立、填 `registry/providers.yaml`）一樣，這裡不重複。
+完成現況架構文件後，依全新專案流程評估外部框架。若該產品尚無發行儲存庫，導入時一併建立獨立的 `<product>-release`，並依 `docs/release-evidence.md` 的允許清單建立空骨架；不要等到第一次發行才臨時建立。CI adapter 與 release evidence 依 `docs/ci-adapters.md`、`docs/release-evidence.md` 疊加到既有 pipeline，不回頭改寫既有 Git 歷史。
 
 ## 注意事項
 
 - Step 0 不能跳過，這是既有專案風險最高的地方——沒做稽核就直接套規則，最常見的後果是團隊覺得這套框架在「找麻煩」而不是在幫忙
-- Step 2 的「調適」選項不是妥協，是這個框架本身的設計原則：規則要服務團隊，不是團隊服務規則。若調適的項目多到讓框架本身的價值變得可疑，那通常代表現有慣例其實運作得不錯，重新評估要不要導入整套框架，還是只挑幾個真正缺的部分（例如只用 `scripts/check.sh` 的驗證邏輯，不動既有的分支策略）
+- Step 2 的「調適」是正式選項。若需調適的項目過多，應重新評估導入範圍，可只採用缺少的部分，例如保留既有分支策略，僅採用 `scripts/check.sh` 的驗證邏輯

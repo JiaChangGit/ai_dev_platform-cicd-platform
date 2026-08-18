@@ -1,0 +1,22 @@
+stages: [verify, package, evidence]
+
+verify:
+  stage: verify
+  script:
+    - <BUILD_COMMAND>
+    - <TEST_COMMAND>
+    - <LINT_AND_SECURITY_COMMAND>
+
+package:
+  stage: package
+  script:
+    - <PACKAGE_COMMAND>
+  artifacts:
+    paths: [<ARTIFACT_PATH>]
+
+evidence:
+  stage: evidence
+  script:
+    - <WRITE_RELEASE_EVIDENCE_JSON_COMMAND>
+  artifacts:
+    paths: [<RELEASE_EVIDENCE_PATH>]

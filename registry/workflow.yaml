@@ -96,14 +96,16 @@ workflows:
     templates:
       - templates/release-note.md
       - templates/task-handoff.md
+      - templates/release-evidence.json.template
     suggested_roles: [planner, verifier, reviewer]
     handoff_required: true
-    repo_scope: "橫跨 product-cicd-platform（凍結/驗證）與 product-release（封裝/發布），見 workflow/release.md"
+    repo_scope: "橫跨 product-cicd-platform（凍結／建置／驗證）與 product-release（中繼證據／標記／發布），見 workflow/release.md"
     deliverables:
       - "版本標籤"
       - "符合 templates/release-note.md 的 release note"
-      - "建置產物與（如適用）依賴清單"
-      - "product-cicd-platform → product-release 的交接檔案（templates/task-handoff.md）"
+      - "CI／成品平台內的不可變建置成品、簽章、SBOM 與 SLSA 來源證明"
+      - "product-cicd-platform → product-release 的交接紀錄（只存在 product-cicd-platform/.ai/handoffs/ 或 CI 紀錄）"
+      - "符合 distribution/release-evidence.schema.json 的 release evidence"
 
   - id: documentation
     doc: workflow/documentation.md
