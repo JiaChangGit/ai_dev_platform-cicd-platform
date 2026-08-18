@@ -34,6 +34,7 @@ for f in README.md AGENTS.md CLAUDE.md opencode.json CHANGELOG.md \
          scripts/package_optional_pack.py scripts/verify_package.py \
          scripts/verify_release_evidence.py scripts/verify_release_layout.py \
          scripts/verify_release_readiness.py scripts/validate_ci_adapters.py \
+         scripts/manage_collaborators.py \
          templates/product-entrypoint/AGENTS.md.template \
          templates/product-entrypoint/CLAUDE.md.template \
          templates/product-entrypoint/opencode.json.template; do
@@ -374,6 +375,12 @@ if grep -q 'verify_release_layout.py' workflow/release.md && \
   pass "發行儲存庫邊界已有流程與初始化入口"
 else
   fail "發行儲存庫邊界缺少流程或初始化入口"
+fi
+
+if python3 -B scripts/manage_collaborators.py check >/dev/null; then
+  pass "GitHub／GitLab CODEOWNERS 與 CI 政策檔一致"
+else
+  fail "collaborator、CODEOWNERS 或 CI 政策檔不同步"
 fi
 
 echo "=================================="

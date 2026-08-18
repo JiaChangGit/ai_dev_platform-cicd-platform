@@ -42,6 +42,27 @@ class ReleaseLayoutTest(unittest.TestCase):
             (root / "release-notes/1.0.0.md").write_text("# v1.0.0\n", encoding="utf-8")
             self.assertEqual(validate_release_layout(root), [])
 
+    def test_accepts_repository_governance_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for directory in (
+                ".github/workflows",
+                ".gitlab/merge_request_templates",
+                "scripts",
+            ):
+                (root / directory).mkdir(parents=True, exist_ok=True)
+            for relative in (
+                ".github/CODEOWNERS",
+                ".github/pull_request_template.md",
+                ".github/workflows/repository-policy.yml",
+                ".gitlab/CODEOWNERS",
+                ".gitlab/merge_request_templates/default.md",
+                ".gitlab-ci.yml",
+                "scripts/manage_collaborators.py",
+            ):
+                (root / relative).write_text("policy\n", encoding="utf-8")
+            self.assertEqual(validate_release_layout(root), [])
+
     def test_rejects_artifacts_source_and_external_skills(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

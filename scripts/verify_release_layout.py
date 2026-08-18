@@ -21,7 +21,7 @@ ROOT_FILES = {
     "README.md",
     "opencode.json",
 }
-ROOT_DIRECTORIES = {".github", "release-evidence", "release-notes"}
+ROOT_DIRECTORIES = {".github", ".gitlab", "release-evidence", "release-notes", "scripts"}
 
 
 def is_allowed_repository_file(relative: Path) -> bool:
@@ -34,20 +34,31 @@ def is_allowed_repository_file(relative: Path) -> bool:
     if relative.parts[0] == "release-notes":
         return len(relative.parts) == 2 and relative.suffix == ".md"
     if relative.parts[0] == ".github":
-        if relative.as_posix() == ".github/CODEOWNERS":
+        if relative.as_posix() in {".github/CODEOWNERS", ".github/pull_request_template.md"}:
             return True
         return (
             len(relative.parts) == 3
             and relative.parts[1] == "workflows"
             and relative.suffix in {".yml", ".yaml"}
         )
+    if relative.parts[0] == ".gitlab":
+        if relative.as_posix() == ".gitlab/CODEOWNERS":
+            return True
+        return (
+            relative.as_posix() == ".gitlab/merge_request_templates/default.md"
+        )
+    if relative.parts[0] == "scripts":
+        return relative.as_posix() == "scripts/manage_collaborators.py"
     return False
 
 
 def is_allowed_repository_directory(relative: Path) -> bool:
     if len(relative.parts) == 1:
         return relative.name in ROOT_DIRECTORIES
-    return relative.as_posix() == ".github/workflows"
+    return relative.as_posix() in {
+        ".github/workflows",
+        ".gitlab/merge_request_templates",
+    }
 
 
 def validate_release_layout(root: Path) -> list[str]:

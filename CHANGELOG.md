@@ -4,6 +4,10 @@
 
 格式參考 [Keep a Changelog](https://keepachangelog.com/)，版本號採語意化版本（見 `governance/release.md`）。
 
+## [1.3.0]
+
+- 新增各 repository 可獨立執行的 collaborator 管理腳本，同步 GitHub／GitLab CODEOWNERS、reviewer、必要 CI 與預設分支保護；管理 Token 不進入 CI 或 Git 歷史
+
 ## [1.2.0]
 
 - 精簡預設離線包，只保留可直接載入的第三方 skill、授權與必要參考內容；完整 OpenAI Cookbook 改為選用套件

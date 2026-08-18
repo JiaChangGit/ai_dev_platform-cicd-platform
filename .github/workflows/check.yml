@@ -52,8 +52,10 @@ jobs:
             scripts/verify_release_evidence.py \
             scripts/verify_release_layout.py \
             scripts/verify_release_readiness.py \
-            scripts/validate_ci_adapters.py
+            scripts/validate_ci_adapters.py \
+            scripts/manage_collaborators.py
           python3 -m unittest discover -s tests -v
+          python3 -B scripts/manage_collaborators.py check
           python3 -B scripts/audit_skills.py
           # CI runner 不建立 commit；--ci 只略過 user.name／user.email，其他安全檢查不變。
           python3 -B scripts/pre_push_audit.py --ci
