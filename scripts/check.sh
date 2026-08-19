@@ -4,11 +4,11 @@
 # 驗證 ai-dev-platform 儲存庫本身的完整性：
 #   1. 必要檔案是否存在（含頂層檔案與 product-entrypoint 模板）
 #   2. 必要的目錄是否存在
-#   3. YAML 檔案語法是否正確（若環境有 python3+yaml 就檢查，沒有就跳過並警告）
+#   3. YAML 檔案語法是否正確（維護環境必須提供 python3+yaml）
 #   4. registry/workflow.yaml 內參照的 doc/governance/templates 是否都存在
 #   5. 每份 markdown 是否以一級標題 (# ) 開頭
 #   6. handoff_required: true 的 workflow 項目，templates 是否有包含 task-handoff.md
-#   7. workflow/governance/templates/docs 底下是否有完全沒被引用的孤兒檔案（WARN）
+#   7. workflow/governance/templates/docs 底下是否有完全沒被引用的孤兒檔案
 #   8. CHANGELOG.md 是否存在且至少有一個版本條目
 #   9. 發行包、第三方授權、CI 轉接器與領域設定檔是否有效
 #  10. CI 轉接器與領域設定檔參照是否有效
@@ -25,7 +25,6 @@ cd "$ROOT_DIR"
 FAIL=0
 pass() { echo "  [OK]   $1"; }
 fail() { echo "  [FAIL] $1"; FAIL=1; }
-warn() { echo "  [WARN] $1"; }
 
 echo "== 1. 必要檔案 =="
 for f in README.md AGENTS.md CLAUDE.md opencode.json CHANGELOG.md \
@@ -57,7 +56,7 @@ if python3 -c "import yaml" >/dev/null 2>&1; then
     fi
   done
 else
-  warn "找不到 python3 的 yaml 模組，跳過 YAML 語法檢查（可 pip install pyyaml 後重跑）"
+  fail "找不到 python3 的 yaml 模組；無法執行 YAML 語法檢查"
 fi
 
 echo "== 4. registry/workflow.yaml 參照完整性 =="
@@ -81,7 +80,7 @@ while IFS= read -r -d '' md; do
   if [[ "$first_nonblank" == \#\ * ]]; then
     pass "$md"
   else
-    warn "$md 未以 '# 標題' 開頭"
+    fail "$md 未以 '# 標題' 開頭"
   fi
 done < <(find workflow governance templates docs examples -name '*.md' -print0 2>/dev/null)
 
@@ -109,14 +108,12 @@ PYEOF
     done <<< "$py_out"
   fi
 else
-  warn "跳過 handoff_required 交叉檢查（缺 python3+yaml 或 registry/workflow.yaml）"
+  fail "無法執行 handoff_required 交叉檢查（缺 python3+yaml 或 registry/workflow.yaml）"
 fi
 
 echo "== 7. 孤兒檔案檢查（workflow / governance / templates / docs）=="
 # 「孤兒」定義：完整相對路徑（例如 governance/review.md）完全沒有被其他任何
-# .md/.yaml 檔案提及。這是啟發式檢查，用 WARN 而非 FAIL——ad hoc 引用（例如
-# 在某段散文中提到，而不是登記進 registry/workflow.yaml）也算數，這裡不強求
-# 一定要出現在 registry 裡。
+# .md/.yaml 檔案提及。Ad hoc 引用也算數，不限於 registry 登記。
 #
 # 用完整相對路徑比對、不是只比對檔名：workflow/、governance/、templates/、docs/
 # 之間有同名檔案（例如 workflow/review.md 與 governance/review.md），只比對
@@ -128,7 +125,7 @@ for d in workflow governance templates docs; do
     [ -f "$f" ] || continue
     hits="$(grep -rl --include='*.md' --include='*.yaml' --exclude-dir=.git -- "$f" . 2>/dev/null | grep -v -- "^\./$f$" | wc -l)"
     if [ "$hits" -eq 0 ]; then
-      warn "$f 沒有被任何其他檔案引用（孤兒檔案，確認是否遺漏了整合步驟）"
+      fail "$f 沒有被任何其他檔案引用（孤兒檔案）"
     else
       pass "$f 有被引用（$hits 處）"
     fi
@@ -282,12 +279,12 @@ fi
 
 if python3 -c "import yaml" >/dev/null 2>&1; then
   if python3 -B scripts/audit_skills.py >/dev/null; then
-    pass "預設離線 skill 結構、路由、重疊與觸發測試一致"
+  pass "預設離線 skill 結構、路由、重疊與路由案例一致"
   else
     fail "skill 稽核失敗"
   fi
 else
-  warn "找不到 PyYAML，跳過維護者 skill 路由稽核"
+  fail "找不到 PyYAML；無法執行 skill 路由稽核"
 fi
 
 echo "== 11. 台灣繁體術語 =="
@@ -385,7 +382,7 @@ fi
 
 echo "=================================="
 if [ "$FAIL" -eq 0 ]; then
-  echo "檢查完成：全部通過（可能有 WARN，請自行評估）"
+  echo "檢查完成：全部通過"
   exit 0
 else
   echo "檢查完成：有項目 FAIL，請修正後再送出"

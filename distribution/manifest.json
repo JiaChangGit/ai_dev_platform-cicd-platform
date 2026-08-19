@@ -27,7 +27,6 @@
     "external/mattpocock-skills/productivity",
     "external/superpowers",
     "external/openai-cookbook/LICENSE",
-    "external/openai-cookbook/README.md",
     "external/openai-cookbook/.codex/skills/docs-editor",
     "external/openai-cookbook/examples/evals/realtime_evals/skills/bootstrap-realtime-eval",
     "governance",
@@ -47,6 +46,12 @@
     "examples/**/build/**",
     "examples/**/dist/**",
     "examples/android-app/.gradle/**",
-    "examples/android-app/local.properties"
+    "examples/android-app/local.properties",
+    "external/mattpocock-skills/engineering/README.md",
+    "external/mattpocock-skills/misc/README.md",
+    "external/mattpocock-skills/productivity/README.md",
+    "external/superpowers/systematic-debugging/CREATION-LOG.md",
+    "external/superpowers/systematic-debugging/test-academic.md",
+    "external/superpowers/systematic-debugging/test-pressure-*.md"
   ]
 }

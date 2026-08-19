@@ -18,7 +18,7 @@
 | R12 | 以 Android App 與 SSD PCIe 韌體驗證平台通用性 | `examples/android-app/`、`examples/ssd-pcie-fw/` | GitHub Actions 實際執行 Android build／unit test／lint；韌體本機／CI 編譯／測試／lint／封裝 |
 | R13 | 發行儲存庫只保存發行證據、Release Note、tag、成品 URI／SHA-256，以及必要的 repository 治理檔；所有準備條件均為阻擋 | `verify_release_layout.py`、`verify_release_evidence.py`、`verify_release_readiness.py` | 邊界允許必要 CI／CODEOWNERS／collaborator 腳本，並拒絕產品原始碼、skill、建置成品；另驗證 schema v2、Git／tag／OpenSSL／SBOM／SLSA |
 | R14 | 第三方 skill 離線內含，產品建置工具不內含 | `distribution/manifest.json`、`registry/skills.yaml`、`docs/consumer-mode.md` | 發行包核對登記 skill／授權；範例建置工具由 CI 環境提供 |
-| R15 | 第三方 skill 不重複觸發、不誤用供應商／儲存庫專屬流程 | `registry/skill-routing.yaml`、`docs/skill-governance.md` | `scripts/audit_skills.py` 逐份稽核 62 份 skill，檢查 6 組重疊與 15 個正反觸發案例 |
+| R15 | 第三方 skill 不重複觸發、不誤用供應商／儲存庫專屬流程 | `registry/skill-routing.yaml`、`docs/skill-governance.md` | `scripts/audit_skills.py` 逐份稽核 62 份 skill 的結構與描述，檢查 7 組重疊、16 個手動路由與 43 個正負案例；發行前以無預設答案的新工作階段複測語意觸發 |
 | R16 | Push 前排除敏感資料、建置成品與個人工具設定 | `.gitignore`、`scripts/pre_push_audit.py` | 掃描 Git 追蹤與未追蹤非忽略檔；本機要求 commit 身分，CI 以明確 `--ci` 模式只略過 runner 身分，仍重跑憑證樣式與 remote 邊界檢查 |
 | R17 | maintenance 與 release repository 可各自新增 collaborator，並同步 GitHub／GitLab 的 CODEOWNERS、CI、PR／MR 與分支保護 | 各 repository 的 `scripts/manage_collaborators.py`、`.github/`、`.gitlab/`、`.gitlab-ci.yml` | 單元測試驗證輸入、remote、規則補齊與冪等；CI 執行唯讀 `check`；遠端管理需由具管理權限的本機環境驗收 |
 

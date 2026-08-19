@@ -21,7 +21,7 @@
   <svg aria-hidden="true" width="0" height="0" style="position:absolute"><symbol id="target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/></symbol><symbol id="box" viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Zm0 0v10l8 4 8-4V7M12 11v10" fill="none" stroke="currentColor" stroke-width="2"/></symbol><symbol id="flow" viewBox="0 0 24 24"><circle cx="5" cy="5" r="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="19" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="5" cy="19" r="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 5h4a3 3 0 0 1 3 3v1M7 19h4a3 3 0 0 0 3-3v-1h3" fill="none" stroke="currentColor" stroke-width="2"/></symbol><symbol id="tool" viewBox="0 0 24 24"><path d="m14 6 4-4 4 4-4 4M18 2v8M3 21l7-7M7 10l7 7-4 4-7-7 4-4Z" fill="none" stroke="currentColor" stroke-width="2"/></symbol><symbol id="shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.4 8 8 9 4.6-1 8-4 8-9V6l-8-3Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="m8.5 12 2.2 2.2 4.8-5" fill="none" stroke="currentColor" stroke-width="2"/></symbol></svg>
   <a class="skip" href="#main">跳到主要內容</a>
   <header class="hero">
-    <p class="eyebrow">平台版本 1.2.0 · 靜態單檔 · 離線可讀</p>
+    <p class="eyebrow">平台版本 1.3.0 · 靜態單檔 · 離線可讀</p>
     <h1>AI Dev Platform<br>架構、導入與發行邊界</h1>
     <p class="lead">這套平台放在多個產品旁邊共用。它不保存產品程式碼，也不代替 CI/CD；實際提供規則、工作流程、模板、離線第三方 skill、初始化工具與發行驗證程式。</p>
     <div class="callout warn"><strong>內容依據：</strong>本頁以 <code>scripts/*.py</code>、<code>tests/</code>、<code>distribution/*.json</code>、CI workflow 與產品入口模板為準。若敘述與程式行為不同，必須以測試釐清並同步修正。</div>
@@ -84,12 +84,12 @@ python3 -B -m unittest discover -s tests -v
 python3 -B scripts/audit_skills.py
 python3 -B scripts/pre_push_audit.py
 python3 -B scripts/package_release.py --source-ref "$(git rev-parse HEAD)"
-python3 -B scripts/verify_package.py dist/ai-dev-platform-1.2.0.zip
+python3 -B scripts/verify_package.py dist/ai-dev-platform-1.3.0.zip
 
 # &lt;Work&gt; 換成共同父目錄；先預覽再安裝
-python3 -B scripts/install_platform.py dist/ai-dev-platform-1.2.0.zip \
+python3 -B scripts/install_platform.py dist/ai-dev-platform-1.3.0.zip \
   --work-root &lt;Work&gt; --dry-run
-	python3 -B scripts/install_platform.py dist/ai-dev-platform-1.2.0.zip \
+	python3 -B scripts/install_platform.py dist/ai-dev-platform-1.3.0.zip \
 	  --work-root &lt;Work&gt;</code></pre>
 	      <div class="callout"><strong>CI 模式：</strong>GitHub Actions、GitLab CI 或其他 runner 不建立 commit 時，使用 <code>python3 -B scripts/pre_push_audit.py --ci</code>。這只略過 runner 的 <code>user.name</code>／<code>user.email</code>，敏感資料、remote、忽略規則與建置成品仍是阻擋條件。</div>
 	      <div class="callout bad">不要在 <code>ai-dev-platform/</code> 執行 <code>git init</code>。安裝器發現目標含 <code>.git</code> 會停止，避免把維護 repo 當成可替換的下載包。</div>
@@ -213,7 +213,7 @@ git push -u origin agent/publish-platform-guide</code></pre>
 python3 -B scripts/manage_collaborators.py add &lt;username&gt;
 python3 -B scripts/manage_collaborators.py add &lt;username&gt; --apply
 python3 -B scripts/manage_collaborators.py check</code></pre>
-      <ul><li>GitHub 認證只讀取本機 <code>gh auth login</code> 狀態。</li><li>GitLab Token 只從 <code>GITLAB_TOKEN</code> 環境變數讀取，不寫入 CI 或 Git。</li><li>GitHub 邀請未接受前不啟用 branch protection，避免無人能核准。</li><li>GitLab 強制 Code Owner 與 approval rule 需要 Premium／Ultimate；不支援時停止，不降低規則。</li><li>CI 只執行唯讀的 <code>check</code>，不持有 repository 管理 Token。</li></ul>
+      <ul><li>GitHub 認證只讀取本機 <code>gh auth login</code> 狀態。</li><li>GitLab Token 只從 <code>GITLAB_TOKEN</code> 環境變數讀取，不寫入 CI 或 Git；必須是有效且包含 <code>api</code> scope 的 access token。</li><li>GitHub Free 的私人 repository 無法啟用 branch protection；腳本會在任何寫入前停止，不會改成公開或自動降低規則。</li><li>遠端寫入先設定保護政策，再授予成員權限；GitHub 新帳號只先收到唯讀邀請，接受後重跑才升為 write。</li><li>GitLab 先確認 Maintainer／Owner 權限、active username、direct membership、group membership lock、分支與核准政策 API；強制 Code Owner 與 approval rule 需要 Premium／Ultimate，不支援時停止，不降低規則。</li><li>CI 只執行唯讀的 <code>check</code>，不持有 repository 管理 Token。</li></ul>
       <h3>發佈本頁</h3>
       <ol><li>將 GitHub Pages source 指向發布 branch 的 <code>/docs</code> 目錄，或使用組織既有 Pages workflow。</li><li>首頁使用 <code>docs/index.html</code>。</li><li>公開前搜尋真實本機路徑、email、內部 URI、Token、run ID 或未公開產品名稱。</li><li>Pages 只展示說明；平台 ZIP 與產品成品仍留在 CI／成品平台。</li></ol>
     </section>
@@ -239,6 +239,6 @@ python3 -B ai-dev-platform/scripts/audit_workspace.py &lt;Work&gt;
       <div class="callout ok"><strong>同步維護：</strong>新增功能時，同一個變更應更新程式、測試、registry、distribution manifest 與本頁。不能只修改說明，讓初始化或驗證程式維持舊行為。</div>
     </section>
   </main>
-  <footer><p><strong>AI Dev Platform 1.2.0</strong> — 單檔靜態說明頁，不含外部腳本、追蹤碼或個人識別資訊。</p></footer>
+  <footer><p><strong>AI Dev Platform 1.3.0</strong> — 單檔靜態說明頁，不含外部腳本、追蹤碼或個人識別資訊。</p></footer>
 </body>
 </html>

@@ -4,7 +4,7 @@
 
 ## 原則
 
-> 如果違反規則會讓 PR 沒辦法合併，這條規則該接 CI；如果只是「審查者會皺眉頭」的程度，寫在 `governance/` 靠審查把關就好，不必每條都上 CI。
+會阻擋 PR 合併的規則應由 CI 執行；需要情境判斷的規則保留在 `governance/` 並由 reviewer 確認。
 
 不是所有規則都值得自動化；優先接以下三類：
 
@@ -25,7 +25,7 @@
 2. `scripts/pre_push_audit.py --ci`：在 CI 重跑敏感資料、建置成品、忽略規則與 remote 邊界檢查；CI runner 不建立 commit，因此只略過 `user.name`／`user.email`
 3. `scripts/commit-lint.sh`：驗證 commit message 是否符合 `governance/commit.md` 的 Conventional Commits 格式
 
-若你把本儲存庫的 CI 設定原封不動搬去別的平台（例如 Jenkins、內部自架系統），核心邏輯就是這兩個腳本，pipeline 設定檔只是負責「在什麼時機呼叫它們」，重寫 pipeline 設定不需要重寫檢查邏輯本身。
+移植到 Jenkins 或內部 CI 時，pipeline 只需在對應階段呼叫這兩個腳本，不需要重寫檢查邏輯。
 
 ## 產品儲存庫（product-cicd-platform）的落地方式
 
@@ -35,7 +35,7 @@
 - `governance/security.md` 定義的機密掃描、相依套件弱點掃描
 - `governance/commit.md` 的格式檢查（`scripts/commit-lint.sh` 可以直接複製過去用，這部分是產品無關的）
 
-建議做法：AI 在 bootstrap 產品儲存庫時（見 `AGENTS.md` 第 3 節），以本儲存庫的兩份範例 pipeline 為起點，保留 `commit-lint` 與「跑一份自我檢查腳本」的結構，把 `scripts/check.sh` 換成產品儲存庫自己的驗證邏輯（build 是否成功、測試是否通過、lint 是否乾淨），並依 `governance/security.md` 加上機密掃描步驟。
+Bootstrap 產品儲存庫時（見 `AGENTS.md` 第 3 節），以兩份範例 pipeline 為起點，保留 `commit-lint` 與自我檢查結構，再把 `scripts/check.sh` 換成產品的 build、test 與 lint，並依 `governance/security.md` 加入機密掃描。
 
 ## PR / Issue 模板變成強制
 

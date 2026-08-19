@@ -1,8 +1,8 @@
 # registry/providers.yaml
 #
 # AI Provider / Model Registry
-# 用途：集中管理專案中使用的 AI 供應商與模型設定，讓 AI 代理人依「角色」挑選合適的
-# 模型，也讓維護者快速確認每個角色目前綁定的供應商與模型。
+# 用途：集中管理專案使用的 AI 供應商與模型設定，供代理工具依角色選擇
+# 模型，並供維護者確認每個角色目前綁定的供應商與模型。
 #
 # 欄位說明：
 #   id             唯一識別碼，供 registry/workflow.yaml 或 AGENTS.md 參照
