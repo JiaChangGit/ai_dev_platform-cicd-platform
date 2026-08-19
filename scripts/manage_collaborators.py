@@ -8,6 +8,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -51,6 +52,16 @@ class RepositoryContext:
     kind: str
     patterns: tuple[str, ...]
     required_checks: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class GitLabPreflightResult:
+    project: dict[str, object]
+    user_id: int
+    branch: str | None
+    protected_branch: dict[str, object] | None
+    approval_rules: list[object]
+    merge_request: dict[str, object] | None
 
 
 class GitLabApiError(RuntimeError):
@@ -98,6 +109,20 @@ def validate_project(project: str) -> str:
     if not PROJECT_PATTERN.fullmatch(value) or ".." in value.split("/"):
         raise ValueError(f"repository／project 路徑無效：{project}")
     return value
+
+
+def selected_branch(
+    override: str | None,
+    metadata: dict[str, object],
+    *,
+    provider: str,
+) -> str:
+    if override:
+        return override
+    branch = metadata.get("default_branch")
+    if not isinstance(branch, str) or not branch.strip():
+        raise RuntimeError(f"{provider} repository 缺少有效 default_branch；請用 --branch 明確指定")
+    return branch
 
 
 def parse_github_repository(remote: str) -> str | None:
@@ -191,12 +216,14 @@ def codeowner_errors(
 
 
 def atomic_write(path: Path, content: str) -> None:
+    mode = stat.S_IMODE(path.stat().st_mode) if path.exists() else 0o644
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(
         "w", encoding="utf-8", newline="\n", dir=path.parent, delete=False
     ) as stream:
         stream.write(content)
         temporary = Path(stream.name)
+    temporary.chmod(mode)
     temporary.replace(path)
 
 
@@ -262,6 +289,76 @@ def github_preflight(repository: str) -> dict[str, object]:
     return data
 
 
+def github_branch_protection_preflight(repository: str, branch: str) -> None:
+    """先確認方案可使用 branch protection，避免遠端只套用一半。"""
+    encoded_branch = urllib.parse.quote(branch, safe="")
+    branch_endpoint = f"repos/{repository}/branches/{encoded_branch}"
+    branch_result = subprocess.run(
+        ["gh", "api", "--method", "GET", branch_endpoint],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    if branch_result.returncode != 0:
+        detail = branch_result.stdout.strip()
+        raise RuntimeError(
+            f"GitHub 分支不存在或無法讀取：{repository}/{branch}"
+            + (f"；{detail}" if detail else "")
+        )
+    try:
+        branch_data = json.loads(branch_result.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError(
+            f"GitHub 分支回應格式無效：{repository}/{branch}"
+        ) from error
+    if not isinstance(branch_data, dict) or branch_data.get("name") != branch:
+        raise RuntimeError(
+            f"GitHub 分支回應格式或名稱不一致：{repository}/{branch}"
+        )
+
+    endpoint = f"{branch_endpoint}/protection"
+    result = subprocess.run(
+        ["gh", "api", "--method", "GET", endpoint],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    output = result.stdout.strip()
+    if result.returncode == 0:
+        return
+    if any(marker in output for marker in ('"status":"404"', '"status":404', "HTTP 404")):
+        return
+    if "Upgrade to GitHub Pro" in output and "make this repository public" in output:
+        raise RuntimeError(
+            "GitHub branch protection 不可用：私人 repository 必須使用 GitHub Pro、"
+            "GitHub Team 或 GitHub Enterprise，或將 repository 改為公開。"
+            "branch protection 是阻擋條件，因此腳本不會自動改用 --no-configure-policy"
+        )
+    raise RuntimeError(output or f"無法確認 GitHub branch protection：{repository}/{branch}")
+
+
+def github_review_preflight(repository: str, username: str, pr_number: int) -> None:
+    """確認 reviewer 與開啟中的 PR，避免設定完成後才發現審查目標無效。"""
+    user = gh_api_json(
+        "GET",
+        f"users/{urllib.parse.quote(username, safe='')}",
+    )
+    if not isinstance(user, dict) or str(user.get("login", "")).lower() != username.lower():
+        raise RuntimeError(f"GitHub reviewer 無法解析：{username}")
+    pull = gh_api_json("GET", f"repos/{repository}/pulls/{pr_number}")
+    if (
+        not isinstance(pull, dict)
+        or pull.get("number") != pr_number
+        or pull.get("state") != "open"
+    ):
+        raise RuntimeError(f"GitHub PR 不存在、未開啟或回應格式無效：#{pr_number}")
+    author = pull.get("user")
+    if isinstance(author, dict) and str(author.get("login", "")).lower() == username.lower():
+        raise RuntimeError(f"GitHub PR 作者不可成為自己的 reviewer：#{pr_number}")
+
+
 def github_add_collaborator(repository: str, username: str, permission: str) -> None:
     gh_api_json(
         "PUT",
@@ -270,19 +367,34 @@ def github_add_collaborator(repository: str, username: str, permission: str) -> 
     )
 
 
-def github_collaborator_is_active(repository: str, username: str) -> bool:
+def github_collaborator_permission(repository: str, username: str) -> str | None:
+    """讀取已生效權限；尚未接受的邀請與非 collaborator 回傳 None。"""
     result = subprocess.run(
-        ["gh", "api", "--silent", f"repos/{repository}/collaborators/{username}"],
+        [
+            "gh",
+            "api",
+            "--method",
+            "GET",
+            f"repos/{repository}/collaborators/{username}/permission",
+        ],
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         check=False,
     )
-    if result.returncode == 0:
-        return True
-    if "HTTP 404" in result.stdout or "Not Found" in result.stdout:
-        return False
-    raise RuntimeError(result.stdout.strip() or "無法確認 GitHub collaborator 狀態")
+    output = result.stdout.strip()
+    if result.returncode != 0:
+        if "HTTP 404" in output or "Not Found" in output:
+            return None
+        raise RuntimeError(output or "無法確認 GitHub collaborator 權限")
+    try:
+        data = json.loads(output)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("GitHub collaborator 權限回應格式無效") from error
+    permission = data.get("permission") if isinstance(data, dict) else None
+    if permission not in {"read", "triage", "write", "maintain", "admin"}:
+        raise RuntimeError("GitHub collaborator 權限回應格式無效")
+    return str(permission)
 
 
 def configure_github_policy(
@@ -376,7 +488,7 @@ def gitlab_request(
 
 
 def gitlab_user_id(base_url: str, token: str, username: str) -> int:
-    query = urllib.parse.urlencode({"username": username})
+    query = urllib.parse.urlencode({"username": username, "active": "true"})
     users = gitlab_request(base_url, f"/users?{query}", token=token)
     exact = [
         item for item in users
@@ -384,7 +496,254 @@ def gitlab_user_id(base_url: str, token: str, username: str) -> int:
     ] if isinstance(users, list) else []
     if len(exact) != 1 or not isinstance(exact[0].get("id"), int):
         raise RuntimeError(f"GitLab username 無法唯一解析：{username}")
+    if exact[0].get("state") != "active":
+        raise RuntimeError(f"GitLab username 不是 active 狀態：{username}")
     return int(exact[0]["id"])
+
+
+def gitlab_effective_access_level(project: dict[str, object]) -> int:
+    permissions = project.get("permissions")
+    if not isinstance(permissions, dict):
+        return 0
+    levels = []
+    for key in ("project_access", "group_access"):
+        access = permissions.get(key)
+        if isinstance(access, dict) and isinstance(access.get("access_level"), int):
+            levels.append(int(access["access_level"]))
+    return max(levels, default=0)
+
+
+def gitlab_token_preflight(base_url: str, token: str) -> None:
+    info = gitlab_request(base_url, "/personal_access_tokens/self", token=token)
+    if not isinstance(info, dict):
+        raise RuntimeError("GitLab Token 自我查詢回應格式無效")
+    if info.get("active") is not True or info.get("revoked") is not False:
+        raise RuntimeError("GitLab Token 已停用、撤銷或過期")
+    scopes = info.get("scopes")
+    if not isinstance(scopes, list) or "api" not in scopes:
+        raise RuntimeError(
+            "GitLab Token 缺少 api scope；read_api 與 write_repository 不足以管理 member 與 project policy"
+        )
+
+
+def gitlab_direct_member_exists(
+    base_url: str,
+    project_endpoint: str,
+    *,
+    token: str,
+    user_id: int,
+) -> bool:
+    try:
+        member = gitlab_request(
+            base_url,
+            f"{project_endpoint}/members/{user_id}",
+            token=token,
+        )
+    except GitLabApiError as error:
+        if error.status == 404:
+            return False
+        raise
+    if not isinstance(member, dict) or member.get("state") != "active":
+        raise RuntimeError(f"GitLab direct member 回應格式或狀態無效：{user_id}")
+    return True
+
+
+def gitlab_membership_lock_preflight(
+    base_url: str,
+    project: dict[str, object],
+    *,
+    token: str,
+) -> None:
+    namespace = project.get("namespace")
+    if not isinstance(namespace, dict):
+        raise RuntimeError("GitLab project 缺少 namespace，無法確認 membership lock")
+    kind = namespace.get("kind")
+    if kind == "user":
+        return
+    if kind != "group":
+        raise RuntimeError(f"GitLab project namespace kind 無法辨識：{kind}")
+    group_id = namespace.get("id")
+    if not isinstance(group_id, int):
+        raise RuntimeError("GitLab project 缺少 immediate group id，無法確認 membership lock")
+    group = gitlab_request(base_url, f"/groups/{group_id}", token=token)
+    if not isinstance(group, dict):
+        raise RuntimeError(f"GitLab group 回應格式無效：{group_id}")
+    membership_lock = group.get("membership_lock")
+    if not isinstance(membership_lock, bool):
+        raise RuntimeError(
+            f"無法確認 GitLab group membership lock：{group_id}；欄位缺少或型別無效"
+        )
+    if membership_lock:
+        raise RuntimeError(
+            f"GitLab group membership lock 已啟用，無法新增 project member：{group_id}"
+        )
+
+
+def gitlab_protected_branch_preflight(
+    base_url: str,
+    project_endpoint: str,
+    *,
+    token: str,
+    branch: str,
+) -> dict[str, object] | None:
+    endpoint = f"{project_endpoint}/protected_branches/{urllib.parse.quote(branch, safe='')}"
+    try:
+        current = gitlab_request(base_url, endpoint, token=token)
+    except GitLabApiError as error:
+        if error.status == 404:
+            return None
+        raise
+    if not isinstance(current, dict) or current.get("name") != branch:
+        raise RuntimeError(f"GitLab protected branch 回應格式或名稱不一致：{branch}")
+    for field in ("push_access_levels", "merge_access_levels", "unprotect_access_levels"):
+        records = current.get(field)
+        if not isinstance(records, list):
+            raise RuntimeError(f"GitLab protected branch 缺少 {field}：{branch}")
+        for record in records:
+            if (
+                not isinstance(record, dict)
+                or not isinstance(record.get("id"), int)
+                or not isinstance(record.get("access_level"), int)
+            ):
+                raise RuntimeError(f"GitLab protected branch 的 {field} 格式無效：{branch}")
+    for field in ("allow_force_push", "code_owner_approval_required"):
+        if not isinstance(current.get(field), bool):
+            raise RuntimeError(f"GitLab protected branch 缺少有效 {field}：{branch}")
+    return current
+
+
+def gitlab_review_preflight(
+    base_url: str,
+    project_endpoint: str,
+    *,
+    token: str,
+    user_id: int,
+    merge_request_iid: int,
+) -> dict[str, object]:
+    merge_request = gitlab_request(
+        base_url,
+        f"{project_endpoint}/merge_requests/{merge_request_iid}",
+        token=token,
+    )
+    if (
+        not isinstance(merge_request, dict)
+        or merge_request.get("iid") != merge_request_iid
+        or merge_request.get("state") != "opened"
+        or not isinstance(merge_request.get("reviewers"), list)
+    ):
+        raise RuntimeError(
+            f"GitLab MR 不存在、未開啟或回應格式無效：!{merge_request_iid}"
+        )
+    author = merge_request.get("author")
+    if isinstance(author, dict) and author.get("id") == user_id:
+        raise RuntimeError(f"GitLab MR 作者不可成為自己的 reviewer：!{merge_request_iid}")
+    for reviewer in merge_request["reviewers"]:
+        if not isinstance(reviewer, dict) or not isinstance(reviewer.get("id"), int):
+            raise RuntimeError(f"GitLab MR reviewer 回應格式無效：!{merge_request_iid}")
+    return merge_request
+
+
+def gitlab_preflight(
+    base_url: str,
+    project_name: str,
+    *,
+    token: str,
+    username: str,
+    branch_override: str | None,
+    configure_policy: bool,
+    merge_request_iid: int | None = None,
+) -> GitLabPreflightResult:
+    """唯讀確認 GitLab 權限、分支與付費政策 API，再允許任何寫入。"""
+    gitlab_token_preflight(base_url, token)
+    project_endpoint = f"/projects/{urllib.parse.quote(project_name, safe='')}"
+    project = gitlab_request(base_url, project_endpoint, token=token)
+    if not isinstance(project, dict):
+        raise RuntimeError(f"GitLab project 回應格式無效：{project_name}")
+    if gitlab_effective_access_level(project) < 40:
+        raise RuntimeError(
+            f"目前 GitLab Token 沒有 Maintainer 或 Owner 權限：{project_name}"
+        )
+
+    user_id = gitlab_user_id(base_url, token, username)
+    direct_member = gitlab_direct_member_exists(
+        base_url,
+        project_endpoint,
+        token=token,
+        user_id=user_id,
+    )
+    if not direct_member:
+        gitlab_membership_lock_preflight(base_url, project, token=token)
+
+    branch = selected_branch(
+        branch_override,
+        project,
+        provider="GitLab",
+    ) if configure_policy else None
+    protected_branch: dict[str, object] | None = None
+    rules: list[object] = []
+    if configure_policy:
+        if branch is None:
+            raise RuntimeError("GitLab 分支預檢狀態遺失")
+        encoded_branch = urllib.parse.quote(branch, safe="")
+        try:
+            branch_data = gitlab_request(
+                base_url,
+                f"{project_endpoint}/repository/branches/{encoded_branch}",
+                token=token,
+            )
+        except GitLabApiError as error:
+            raise RuntimeError(
+                f"GitLab 分支不存在或無法讀取：{project_name}/{branch}；{error}"
+            ) from error
+        if not isinstance(branch_data, dict) or branch_data.get("name") != branch:
+            raise RuntimeError(
+                f"GitLab 分支回應格式或名稱不一致：{project_name}/{branch}"
+            )
+        protected_branch = gitlab_protected_branch_preflight(
+            base_url,
+            project_endpoint,
+            token=token,
+            branch=branch,
+        )
+        try:
+            approvals = gitlab_request(
+                base_url,
+                f"{project_endpoint}/approvals",
+                token=token,
+            )
+            approval_rules = gitlab_request(
+                base_url,
+                f"{project_endpoint}/approval_rules",
+                token=token,
+            )
+        except GitLabApiError as error:
+            if error.status in (403, 404):
+                raise RuntimeError(
+                    "GitLab 必要核准政策不可用：Code Owner 與 required approval rule "
+                    "需要 GitLab Premium／Ultimate，以及 Maintainer 或 Owner 權限"
+                ) from error
+            raise
+        if not isinstance(approvals, dict) or not isinstance(approval_rules, list):
+            raise RuntimeError(f"GitLab 核准政策回應格式無效：{project_name}")
+        rules = approval_rules
+
+    merge_request = None
+    if merge_request_iid is not None:
+        merge_request = gitlab_review_preflight(
+            base_url,
+            project_endpoint,
+            token=token,
+            user_id=user_id,
+            merge_request_iid=merge_request_iid,
+        )
+    return GitLabPreflightResult(
+        project=project,
+        user_id=user_id,
+        branch=branch,
+        protected_branch=protected_branch,
+        approval_rules=rules,
+        merge_request=merge_request,
+    )
 
 
 def gitlab_add_member(
@@ -422,6 +781,8 @@ def configure_gitlab_policy(
     token: str,
     branch: str,
     approvals: int,
+    current_protection: dict[str, object] | None,
+    approval_rules: list[object],
 ) -> None:
     gitlab_request(
         base_url,
@@ -436,13 +797,7 @@ def configure_gitlab_policy(
     )
 
     branch_endpoint = f"{project_endpoint}/protected_branches/{urllib.parse.quote(branch, safe='')}"
-    try:
-        current = gitlab_request(base_url, branch_endpoint, token=token)
-    except GitLabApiError as error:
-        if error.status != 404:
-            raise
-        current = None
-    if current is None:
+    if current_protection is None:
         gitlab_request(
             base_url,
             f"{project_endpoint}/protected_branches",
@@ -458,21 +813,19 @@ def configure_gitlab_policy(
             },
         )
     else:
-        push_updates: list[dict[str, object]] = []
-        if isinstance(current, dict):
-            for record in current.get("push_access_levels", []):
-                if not isinstance(record, dict) or not isinstance(record.get("id"), int):
-                    continue
-                if record.get("deploy_key_id") is not None:
-                    push_updates.append({"id": record["id"], "_destroy": True})
-                else:
-                    push_updates.append({"id": record["id"], "access_level": 0})
         payload: dict[str, object] = {
             "allow_force_push": False,
             "code_owner_approval_required": True,
+            "allowed_to_push": gitlab_access_updates(
+                current_protection["push_access_levels"], 0
+            ),
+            "allowed_to_merge": gitlab_access_updates(
+                current_protection["merge_access_levels"], 30
+            ),
+            "allowed_to_unprotect": gitlab_access_updates(
+                current_protection["unprotect_access_levels"], 40
+            ),
         }
-        if push_updates:
-            payload["allowed_to_push"] = push_updates
         gitlab_request(base_url, branch_endpoint, token=token, method="PATCH", payload=payload)
 
     gitlab_request(
@@ -487,9 +840,11 @@ def configure_gitlab_policy(
             "merge_requests_disable_committers_approval": True,
         },
     )
-    rules = gitlab_request(base_url, f"{project_endpoint}/approval_rules", token=token)
-    named = [item for item in rules if isinstance(item, dict) and item.get("name") == "Repository policy"] \
-        if isinstance(rules, list) else []
+    named = [
+        item
+        for item in approval_rules
+        if isinstance(item, dict) and item.get("name") == "Repository policy"
+    ]
     rule_payload = {
         "name": "Repository policy",
         "approvals_required": approvals,
@@ -513,6 +868,29 @@ def configure_gitlab_policy(
         )
 
 
+def gitlab_access_updates(records: object, access_level: int) -> list[dict[str, object]]:
+    """保留一條一般層級規則，移除使用者、群組與 deploy key 例外。"""
+    if not isinstance(records, list):
+        raise RuntimeError("GitLab protected branch access level 預檢狀態遺失")
+    updates: list[dict[str, object]] = []
+    generic_seen = False
+    for record in records:
+        if not isinstance(record, dict) or not isinstance(record.get("id"), int):
+            raise RuntimeError("GitLab protected branch access level 預檢狀態無效")
+        special = any(
+            record.get(field) is not None
+            for field in ("user_id", "group_id", "deploy_key_id")
+        )
+        if special or generic_seen:
+            updates.append({"id": record["id"], "_destroy": True})
+        else:
+            updates.append({"id": record["id"], "access_level": access_level})
+            generic_seen = True
+    if not generic_seen:
+        updates.append({"access_level": access_level})
+    return updates
+
+
 def request_gitlab_review(
     base_url: str,
     project_endpoint: str,
@@ -520,10 +898,10 @@ def request_gitlab_review(
     token: str,
     user_id: int,
     merge_request_iid: int,
+    current: dict[str, object],
 ) -> None:
     endpoint = f"{project_endpoint}/merge_requests/{merge_request_iid}"
-    current = gitlab_request(base_url, endpoint, token=token)
-    reviewers = current.get("reviewers", []) if isinstance(current, dict) else []
+    reviewers = current["reviewers"]
     reviewer_ids = {
         item["id"] for item in reviewers
         if isinstance(item, dict) and isinstance(item.get("id"), int)
@@ -550,6 +928,7 @@ def source_codeowners(context: RepositoryContext) -> str:
 
 def add_command(args: argparse.Namespace, context: RepositoryContext) -> int:
     username = validate_username(args.username)
+    preflight_only = bool(getattr(args, "preflight_only", False))
     try:
         remote = git(context.root, "remote", "get-url", "origin")
     except subprocess.CalledProcessError:
@@ -568,8 +947,16 @@ def add_command(args: argparse.Namespace, context: RepositoryContext) -> int:
         args.request_review is not None or args.request_merge_request_review is not None
     ):
         raise ValueError("--local-only 不可搭配遠端 reviewer 參數")
-    if args.apply and not args.local_only and not github_repository and not gitlab_project:
+    if preflight_only and (args.apply or args.local_only):
+        raise ValueError("--preflight-only 不可搭配 --apply 或 --local-only")
+    if args.request_review is not None and not github_repository:
+        raise ValueError("--request-review 必須搭配可用的 GitHub repository")
+    if args.request_merge_request_review is not None and not gitlab_project:
+        raise ValueError("--request-merge-request-review 必須搭配可用的 GitLab project")
+    if (args.apply or preflight_only) and not args.local_only and not github_repository and not gitlab_project:
         raise RuntimeError("沒有可處理的 GitHub／GitLab 目標；只改本機請加上 --local-only")
+    if (args.apply or preflight_only) and not args.local_only and not args.configure_policy:
+        raise ValueError("平台將分支保護列為阻擋條件，不接受 --no-configure-policy")
 
     current = source_codeowners(context)
     inferred_owner = existing_primary_owner(current)
@@ -595,87 +982,145 @@ def add_command(args: argparse.Namespace, context: RepositoryContext) -> int:
         print(f"[PLAN] GitHub: {github_repository}; required checks={','.join(checks) or '(none)'}")
     if gitlab_project:
         print(f"[PLAN] GitLab: {gitlab_project}; token env={args.gitlab_token_env}")
-    if not args.apply:
+    if not args.apply and not preflight_only:
         print("[DRY-RUN] 未修改檔案或遠端設定；確認後加上 --apply")
         return 0
+
+    github_metadata: dict[str, object] | None = None
+    github_target_branch: str | None = None
+    github_current_permission: str | None = None
+    if github_repository and not args.local_only:
+        github_metadata = github_preflight(github_repository)
+        github_current_permission = github_collaborator_permission(
+            github_repository,
+            username,
+        )
+        if args.configure_policy:
+            github_target_branch = selected_branch(
+                args.branch,
+                github_metadata,
+                provider="GitHub",
+            )
+            github_branch_protection_preflight(github_repository, github_target_branch)
+        if args.request_review is not None:
+            github_review_preflight(github_repository, username, args.request_review)
+
+    gitlab_base_url: str | None = None
+    gitlab_token: str | None = None
+    gitlab_preflight_result: GitLabPreflightResult | None = None
+    if gitlab_project and not args.local_only:
+        if not ENV_NAME_PATTERN.fullmatch(args.gitlab_token_env):
+            raise ValueError("GitLab token 環境變數名稱格式無效")
+        gitlab_token = os.environ.get(args.gitlab_token_env, "")
+        if not gitlab_token:
+            raise RuntimeError(f"缺少 GitLab token 環境變數：{args.gitlab_token_env}")
+        gitlab_base_url = validate_gitlab_api_url(
+            args.gitlab_api_url,
+            allow_insecure_http=args.allow_insecure_gitlab_http,
+        )
+        gitlab_preflight_result = gitlab_preflight(
+            gitlab_base_url,
+            gitlab_project,
+            token=gitlab_token,
+            username=username,
+            branch_override=args.branch,
+            configure_policy=args.configure_policy,
+            merge_request_iid=args.request_merge_request_review,
+        )
+
+    if preflight_only:
+        print("[OK] GitHub／GitLab 遠端唯讀預檢通過；未修改檔案或遠端設定")
+        return 0
+
+    if args.local_only:
+        atomic_write(context.root / ".github/CODEOWNERS", content)
+        atomic_write(context.root / ".gitlab/CODEOWNERS", content)
+        print("[OK] GitHub／GitLab CODEOWNERS 已同步")
+        return 0
+
+    # 先完成所有遠端保護政策，再授予可寫權限。後段失敗時，新成員不會
+    # 留在未受保護的分支上。
+    if github_repository:
+        if github_target_branch is None:
+            raise RuntimeError("GitHub 分支預檢狀態遺失；未設定 branch protection")
+        configure_github_policy(
+            github_repository,
+            branch=github_target_branch,
+            required_checks=checks,
+            approvals=args.approvals,
+        )
+        print(f"[OK] GitHub PR／branch protection 已設定：{github_target_branch}")
+
+    if gitlab_project:
+        if (
+            gitlab_token is None
+            or gitlab_base_url is None
+            or gitlab_preflight_result is None
+        ):
+            raise RuntimeError("GitLab 預檢狀態遺失；未執行任何 GitLab 寫入")
+        token = gitlab_token
+        base_url = gitlab_base_url
+        project_endpoint = f"/projects/{urllib.parse.quote(gitlab_project, safe='')}"
+        branch = gitlab_preflight_result.branch
+        if branch is None:
+            raise RuntimeError("GitLab 分支預檢狀態遺失；未設定 protected branch")
+        configure_gitlab_policy(
+            base_url,
+            project_endpoint,
+            token=token,
+            branch=branch,
+            approvals=args.approvals,
+            current_protection=gitlab_preflight_result.protected_branch,
+            approval_rules=gitlab_preflight_result.approval_rules,
+        )
+        print(f"[OK] GitLab MR／protected branch 已設定：{branch}")
+
+    if github_repository and github_current_permission is None:
+        github_add_collaborator(github_repository, username, "pull")
+        print(
+            f"[WAIT] GitHub 已送出唯讀邀請：{username}；接受後以相同參數重跑",
+            file=sys.stderr,
+        )
+        print("[NEXT] 對方接受邀請後，以相同參數重跑一次 --apply", file=sys.stderr)
+        return 2
+
+    if github_repository:
+        github_add_collaborator(github_repository, username, args.github_permission)
+        print(f"[OK] GitHub collaborator 權限已設定：{username} ({args.github_permission})")
+
+    if gitlab_project:
+        if gitlab_preflight_result is None or gitlab_base_url is None or gitlab_token is None:
+            raise RuntimeError("GitLab 預檢狀態遺失；未授予 member 權限")
+        project_endpoint = f"/projects/{urllib.parse.quote(gitlab_project, safe='')}"
+        gitlab_add_member(
+            gitlab_base_url,
+            project_endpoint,
+            token=gitlab_token,
+            user_id=gitlab_preflight_result.user_id,
+            access_level=args.gitlab_access_level,
+        )
+        print(f"[OK] GitLab member 已設定：{username}")
 
     atomic_write(context.root / ".github/CODEOWNERS", content)
     atomic_write(context.root / ".gitlab/CODEOWNERS", content)
     print("[OK] GitHub／GitLab CODEOWNERS 已同步")
-    if args.local_only:
-        return 0
-    pending_github_invitation = False
-    if github_repository:
-        metadata = github_preflight(github_repository)
-        github_add_collaborator(github_repository, username, args.github_permission)
-        active = github_collaborator_is_active(github_repository, username)
-        print(f"[OK] GitHub collaborator 已存在或邀請已送出：{username}")
-        if active:
-            if args.configure_policy:
-                branch = args.branch or str(metadata.get("default_branch") or "main")
-                configure_github_policy(
-                    github_repository,
-                    branch=branch,
-                    required_checks=checks,
-                    approvals=args.approvals,
-                )
-                print(f"[OK] GitHub PR／branch protection 已設定：{branch}")
-            if args.request_review is not None:
-                request_github_review(github_repository, username, args.request_review)
-                print(f"[OK] GitHub PR #{args.request_review} 已加入 reviewer")
-        else:
-            pending_github_invitation = True
-            print(
-                "[WAIT] GitHub 邀請尚未接受；為避免鎖住預設分支，暫不啟用 branch protection 或指定 reviewer",
-                file=sys.stderr,
-            )
 
-    if gitlab_project:
-        if not ENV_NAME_PATTERN.fullmatch(args.gitlab_token_env):
-            raise ValueError("GitLab token 環境變數名稱格式無效")
-        token = os.environ.get(args.gitlab_token_env, "")
-        if not token:
-            raise RuntimeError(f"缺少 GitLab token 環境變數：{args.gitlab_token_env}")
-        base_url = validate_gitlab_api_url(
-            args.gitlab_api_url,
-            allow_insecure_http=args.allow_insecure_gitlab_http,
-        )
-        project_endpoint = f"/projects/{urllib.parse.quote(gitlab_project, safe='')}"
-        project = gitlab_request(base_url, project_endpoint, token=token)
-        if not isinstance(project, dict):
-            raise RuntimeError(f"GitLab project 回應格式無效：{gitlab_project}")
-        user_id = gitlab_user_id(base_url, token, username)
-        gitlab_add_member(
-            base_url,
-            project_endpoint,
-            token=token,
-            user_id=user_id,
-            access_level=args.gitlab_access_level,
-        )
-        print(f"[OK] GitLab member 已設定：{username}")
-        if args.configure_policy:
-            branch = args.branch or str(project.get("default_branch") or "main")
-            configure_gitlab_policy(
-                base_url,
-                project_endpoint,
-                token=token,
-                branch=branch,
-                approvals=args.approvals,
-            )
-            print(f"[OK] GitLab MR／protected branch 已設定：{branch}")
-        if args.request_merge_request_review is not None:
-            request_gitlab_review(
-                base_url,
-                project_endpoint,
-                token=token,
-                user_id=user_id,
-                merge_request_iid=args.request_merge_request_review,
-            )
-            print(f"[OK] GitLab MR !{args.request_merge_request_review} 已加入 reviewer")
+    if github_repository and args.request_review is not None:
+        request_github_review(github_repository, username, args.request_review)
+        print(f"[OK] GitHub PR #{args.request_review} 已加入 reviewer")
 
-    if pending_github_invitation:
-        print("[NEXT] 對方接受邀請後，以相同參數重跑一次 --apply", file=sys.stderr)
-        return 2
+    if gitlab_project and args.request_merge_request_review is not None:
+        if gitlab_preflight_result is None or gitlab_preflight_result.merge_request is None:
+            raise RuntimeError("GitLab MR 預檢狀態遺失；未送出 reviewer 變更")
+        request_gitlab_review(
+            gitlab_base_url,
+            f"/projects/{urllib.parse.quote(gitlab_project, safe='')}",
+            token=gitlab_token,
+            user_id=gitlab_preflight_result.user_id,
+            merge_request_iid=args.request_merge_request_review,
+            current=gitlab_preflight_result.merge_request,
+        )
+        print(f"[OK] GitLab MR !{args.request_merge_request_review} 已加入 reviewer")
     return 0
 
 
@@ -693,11 +1138,21 @@ def main() -> int:
     add = subparsers.add_parser("add", help="新增 collaborator／member 並設定審查政策")
     add.add_argument("username")
     add.add_argument("--apply", action="store_true", help="實際修改；預設只顯示計畫")
+    add.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="執行 GitHub／GitLab 遠端唯讀預檢，不寫入設定",
+    )
     add.add_argument("--local-only", action="store_true", help="只更新 CODEOWNERS，不呼叫 API")
     add.add_argument("--owner", help="既有 CODEOWNER；可用 user 或 organization/team")
     add.add_argument("--github-repository", help="owner/repository；GitHub origin 可自動判斷")
     add.add_argument("--skip-github", action="store_true", help="不呼叫 GitHub API")
-    add.add_argument("--github-permission", choices=("pull", "triage", "push", "maintain", "admin"), default="push")
+    add.add_argument(
+        "--github-permission",
+        choices=("push", "maintain", "admin"),
+        default="push",
+        help="GitHub 權限；CODEOWNERS 至少需要 write（push）",
+    )
     add.add_argument("--request-review", type=int, metavar="PR_NUMBER")
     add.add_argument("--gitlab-project", help="group/project；GitLab origin 可自動判斷")
     add.add_argument("--skip-gitlab", action="store_true", help="不呼叫 GitLab API")
