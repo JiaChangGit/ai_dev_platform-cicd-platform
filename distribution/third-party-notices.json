@@ -25,7 +25,6 @@
       "distributionMode": "selected-skills-default-full-snapshot-optional",
       "packagedPaths": [
         "external/openai-cookbook/LICENSE",
-        "external/openai-cookbook/README.md",
         "external/openai-cookbook/.codex/skills/docs-editor",
         "external/openai-cookbook/examples/evals/realtime_evals/skills/bootstrap-realtime-eval"
       ]

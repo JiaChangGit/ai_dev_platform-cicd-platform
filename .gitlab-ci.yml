@@ -19,8 +19,9 @@ self-check:
     - pip install pyyaml --quiet
   script:
     - bash scripts/check.sh
-    - python3 -m py_compile scripts/init_product.py scripts/install_platform.py scripts/audit_workspace.py scripts/audit_skills.py scripts/pre_push_audit.py scripts/package_release.py scripts/package_optional_pack.py scripts/verify_package.py scripts/verify_release_evidence.py scripts/verify_release_layout.py scripts/verify_release_readiness.py scripts/validate_ci_adapters.py
+    - python3 -m py_compile scripts/init_product.py scripts/install_platform.py scripts/audit_workspace.py scripts/audit_skills.py scripts/pre_push_audit.py scripts/package_release.py scripts/package_optional_pack.py scripts/verify_package.py scripts/verify_release_evidence.py scripts/verify_release_layout.py scripts/verify_release_readiness.py scripts/validate_ci_adapters.py scripts/manage_collaborators.py
     - python3 -B -m unittest discover -s tests -v
+    - python3 -B scripts/manage_collaborators.py check
     - python3 -B scripts/audit_skills.py
     # GitLab runner 的 origin 可能含短期 CI 憑證；稽核前改回不含憑證的專案 URL。
     - git remote set-url origin "${CI_PROJECT_URL}.git"

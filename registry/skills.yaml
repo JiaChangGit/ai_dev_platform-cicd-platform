@@ -1,10 +1,7 @@
 # registry/skills.yaml
 #
-# 「Skill」在此指可重複使用的 AI 能力模組（例如以 SKILL.md 描述的最佳實踐包），
-# 概念上與 Claude Skills / Codex CLI 的 skill 機制相容。
-# 本檔案是 skill 的索引，實際內容存放在：
-#   - external/ 底下由 git subtree 同步進來的第三方 skill
-#   - 專案自製的 skills/ 目錄（若有，需自行建立）
+# 本檔案只索引預設離線包的第三方來源。
+# 觸發邊界的唯一來源是 registry/skill-routing.yaml；不在這裡維護第二份關鍵字清單。
 
 skills:
   - id: anthropic-skills-bundle
@@ -12,7 +9,6 @@ skills:
     type: external-subtree
     description: "Anthropic 官方/社群維護的技能包集合"
     applicable_domains: [general, docx, pptx, xlsx, pdf]
-    trigger_keywords: [word, excel, powerpoint, pdf, 文件, 簡報, 試算表]
 
   # 下列三個目錄是 Matt Pocock 快照中已穩定的 skill。
   # in-progress/ 與 deprecated/ 不進入預設包，避免實驗中行為被誤當為可用流程。
@@ -21,61 +17,37 @@ skills:
     type: external-subtree
     description: "工程設計、診斷、實作、審查與交接 skill；實際觸發邊界以 registry/skill-routing.yaml 為準"
     applicable_domains: [general, software-development]
-    trigger_keywords: [debug, review, tdd, architecture, implementation]
 
   - id: mattpocock-misc-skills
     source: external/mattpocock-skills/misc
     type: external-subtree
     description: "Git 防護、pre-commit、教材骨架與 TypeScript 測試輔助 skill"
     applicable_domains: [general, software-development]
-    trigger_keywords: [git guardrails, pre-commit, husky, exercises, shoehorn]
 
   - id: mattpocock-productivity-skills
     source: external/mattpocock-skills/productivity
     type: external-subtree
     description: "訪談、交接、教學與為代理人撰寫指示的 skill；其中手動呼叫項目不得自動觸發"
     applicable_domains: [general]
-    trigger_keywords: [grill, handoff, teach, questionnaire, AGENTS.md]
 
   - id: openai-cookbook-docs-editor
     source: external/openai-cookbook/.codex/skills/docs-editor
     type: external-subtree
     description: "OpenAI Cookbook 的技術文件編輯 skill；預設離線包只保留可直接載入的 skill"
     applicable_domains: [general, documentation]
-    trigger_keywords: [documentation, docs-editor, 技術文件]
 
   - id: openai-cookbook-bootstrap-realtime-eval
     source: external/openai-cookbook/examples/evals/realtime_evals/skills/bootstrap-realtime-eval
     type: external-subtree
     description: "OpenAI Cookbook 的 Realtime 評測啟動 skill；完整 Cookbook 以選用套件提供"
     applicable_domains: [llm-integration, evaluation]
-    trigger_keywords: [realtime, eval, bootstrap-realtime-eval]
-
-  - id: grill-with-docs-skill
-    source: external/mattpocock-skills/engineering/grill-with-docs
-    type: external-subtree
-    description: "語意對齊與決策存證：以訪談釐清設計與用詞，寫入 CONTEXT.md 與 docs/adr/。必須由使用者明確呼叫，並與 grilling、domain-modeling 一起使用"
-    applicable_domains: [general]
-    trigger_keywords: [grill-with-docs, context.md, 術語, 詞彙表, adr]
 
   - id: superpowers-bundle
     source: external/superpowers
     type: external-subtree
     description: "執行紀律的具體實作：TDD、brainstorm、write-plan、execute-plan 等 skill；governance/agent-discipline.md 才是工具無關的最低要求（見 docs/external-frameworks.md）"
     applicable_domains: [general]
-    trigger_keywords: [superpowers, tdd, brainstorm, write-plan, execute-plan]
 
   # 注意：OpenSpec 不在此列——它是安裝在「產品儲存庫」內的 CLI 工具，
   # 不是可被動讀取的參考內容，不適合套用這份 schema 的 source/type 語意，
   # 索引位置在 registry/frameworks.yaml，說明見 docs/external-frameworks.md
-
-  # 新增自製 skill 的範例格式；實際新增時複製這個區塊並填值，
-  # 同時在 skills/<skill-name>/SKILL.md 建立內容。
-  # 注意：skills/ 目錄不預先建立在骨架中，以免空目錄或佔位檔案造成雜訊。
-  # 第一次新增自製 skill 時再建立即可，不代表目錄缺漏。
-  # - id: your-skill
-  #   source: skills/your-skill
-  #   type: local
-  #   description: "簡述這個 skill 解決的問題"
-  #   applicable_domains: [general]
-  #   trigger_keywords: [your-keyword]

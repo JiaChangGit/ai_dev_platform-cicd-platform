@@ -103,6 +103,8 @@ https://github.com/JiaChangGit/ai_dev_platform-cicd-platform/compare/main...agen
 
 ## GitHub 儲存庫設定
 
+可由 [`scripts/manage_collaborators.py`](../scripts/manage_collaborators.py) 套用 collaborator、required checks 與 branch protection。完整參數、GitLab 對應方式及 Token 安全規則見 [`docs/collaborator-management.md`](collaborator-management.md)。第一次執行必須先讓受邀者接受邀請，再重跑腳本啟用保護規則。
+
 在 **Settings** 完成下列設定：
 
 1. **General → Pull Requests**：啟用 Automatically delete head branches；合併方式建議只保留 Squash merging。

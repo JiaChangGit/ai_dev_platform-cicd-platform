@@ -74,6 +74,7 @@ ai-dev-platform/
 目前需求、實作與驗證的對照見 [`docs/requirements-traceability.md`](docs/requirements-traceability.md)。
 第三方 skill 的穩定範圍、手動呼叫、觸發限制與重疊解決見 [`docs/skill-governance.md`](docs/skill-governance.md)。
 GitHub 推送邊界、PR 步驟與儲存庫保護設定見 [`docs/publishing-to-github.md`](docs/publishing-to-github.md)。
+新增 collaborator／member、同步 GitHub／GitLab CODEOWNERS 與設定 PR／MR 保護規則，見 [`docs/collaborator-management.md`](docs/collaborator-management.md)。
 
 ## 快速開始
 
