@@ -29,14 +29,15 @@
 3. **Commit 這個修改**（git subtree 要求工作目錄乾淨才能執行，這步不能省，`scripts/sync.sh` 會在偵測到未 commit 的變更時直接擋下並提示）：
 
    ```bash
+   SUBTREE_NAME=example-tools
    git add external/subtrees.yaml
-   git commit -m "chore(sync): add <目錄名> subtree config"
+   git commit -m "chore(sync): add ${SUBTREE_NAME} subtree config"
    ```
 
 4. 執行：
 
    ```bash
-   scripts/sync.sh add <目錄名>
+   scripts/sync.sh add "$SUBTREE_NAME"
    ```
 
    內部等同於：`git subtree add --prefix=external/<目錄名> <repo> <branch> --squash`
@@ -52,8 +53,10 @@
 1. Fork `some-repo` 到自己帳號（見上一節），本機另外 clone 一份（跟 ai-dev-platform 分開的資料夾）：
 
    ```bash
-   git clone https://github.com/<你的帳號>/some-repo.git /path/to/some-repo-clone
-   cd /path/to/some-repo-clone
+   read -rp "Fork repository HTTPS URL: " FORK_REPOSITORY_URL
+   read -rp "Absolute clone destination: " UPSTREAM_CLONE
+   git clone "$FORK_REPOSITORY_URL" "$UPSTREAM_CLONE"
+   cd "$UPSTREAM_CLONE"
    ```
 
 2. 切出只含 `skill-a/` 歷史的分支，資料夾本身會變成該分支的根目錄：
@@ -92,7 +95,7 @@
 **保留住第 1 步的本機 clone**（不要刪掉），下次要抓新的上游變更時：
 
 ```bash
-cd /path/to/some-repo-clone
+cd "$UPSTREAM_CLONE"
 git checkout main
 git pull upstream main         # 先決定怎麼讓 main 跟到真正的上游，見下方註記
 git subtree split --prefix=skill-a -b extract-skill-a
@@ -101,7 +104,7 @@ git push origin extract-skill-a
 
 回到 `ai-dev-platform` 執行 `scripts/sync.sh pull skill-a` 即可。留著同一份本機 clone 重複使用，`git subtree split` 才能接續上次的切點做增量更新（fast-forward），不用每次都整個重切、也不需要 force push。
 
-> 註：`git pull upstream main` 假設你已經在這個 clone 裡把原始上游加成第二個 remote：`git remote add upstream https://github.com/anthropics/skills.git`（把網址換成實際上游）。這樣你的 fork 落後上游時，才能先同步 fork、再切分支。
+> 註：`git pull upstream main` 假設你已經在這個 clone 裡把原始上游加成第二個 remote。先執行 `read -rp "Upstream repository HTTPS URL: " UPSTREAM_REPOSITORY_URL`，再執行 `git remote add upstream "$UPSTREAM_REPOSITORY_URL"`。這樣 fork 落後上游時，才能先同步 fork、再切分支。
 
 ### 同時追蹤多個第三方儲存庫的多個子資料夾
 
@@ -125,7 +128,8 @@ subtrees:
 ## 拉取上游更新（整個儲存庫）
 
 ```bash
-scripts/sync.sh pull <目錄名>
+read -rp "Subtree name from external/subtrees.yaml: " SUBTREE_NAME
+scripts/sync.sh pull "$SUBTREE_NAME"
 # 或省略名稱，處理 subtrees.yaml 中所有項目
 scripts/sync.sh pull
 ```
@@ -135,7 +139,13 @@ scripts/sync.sh pull
 subtree 支援反向推送，但 `scripts/sync.sh` 目前不封裝這個操作（避免誤推），請手動執行：
 
 ```bash
-git subtree push --prefix=external/<目錄名> <你的 fork 的 repo url> <branch>
+read -rp "Subtree name: " SUBTREE_NAME
+read -rp "Fork repository URL: " FORK_REPOSITORY_URL
+read -rp "Fork branch: " FORK_BRANCH
+git subtree push \
+  --prefix="external/${SUBTREE_NAME}" \
+  "$FORK_REPOSITORY_URL" \
+  "$FORK_BRANCH"
 ```
 
 之後在該第三方儲存庫另外開 PR 給原始上游。
@@ -147,8 +157,15 @@ git subtree push --prefix=external/<目錄名> <你的 fork 的 repo url> <branc
 ## 移除一個 subtree
 
 ```bash
-git rm -r external/<目錄名>
-git commit -m "chore(sync): remove <目錄名> subtree"
+read -rp "Subtree name to remove: " SUBTREE_NAME
+case "$SUBTREE_NAME" in
+  ""|*[!a-z0-9_-]*) echo "Invalid subtree name" >&2; exit 1 ;;
+esac
+SUBTREE_PATH="external/${SUBTREE_NAME}"
+test -d "$SUBTREE_PATH"
+git status --short -- "$SUBTREE_PATH"
+git rm -r -- "$SUBTREE_PATH"
+git commit -m "chore(sync): remove ${SUBTREE_NAME} subtree"
 ```
 
 並記得從 `external/subtrees.yaml` 移除對應項目。

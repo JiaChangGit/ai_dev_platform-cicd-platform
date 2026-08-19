@@ -25,7 +25,7 @@
 2. `scripts/pre_push_audit.py --ci`：在 CI 重跑敏感資料、建置成品、忽略規則與 remote 邊界檢查；CI runner 不建立 commit，因此只略過 `user.name`／`user.email`
 3. `scripts/commit-lint.sh`：驗證 commit message 是否符合 `governance/commit.md` 的 Conventional Commits 格式
 
-移植到 Jenkins 或內部 CI 時，pipeline 只需在對應階段呼叫這兩個腳本，不需要重寫檢查邏輯。
+移植到 Jenkins 或內部 CI 時，pipeline 只需在對應階段呼叫這三個腳本，不需要重寫檢查邏輯。
 
 ## 產品儲存庫（product-cicd-platform）的落地方式
 

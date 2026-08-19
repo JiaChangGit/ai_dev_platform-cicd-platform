@@ -20,7 +20,7 @@
 1. 判斷任務類型（feature / bugfix / debug / review / benchmark / release / documentation），對照 `registry/workflow.yaml` 找到：
    - 要遵守的 `governance/*.md`
    - 要使用的 `templates/*.md`
-   - 建議的角色分工（`suggested_roles`，對照 `registry/providers.yaml`）與是否需要交接（`handoff_required`）
+   - 建議的角色分工（`suggested_roles`，對照 `registry/providers.yaml`）與是否需要交接（`handoff_required`）；providers 只提供角色與 model ID 範例，不會設定實際工具
 2. 讀該任務類型對應的 `workflow/*.md`，照裡面的步驟走，不要自創流程
 3. 若任務涉及你不熟悉的產品領域（Android / kernel / 前端框架 / ...），先讀 `docs/domain-adaptation.md`，依清單去查該領域的權威資料來源，**不要憑記憶臆測領域慣例**
 4. 若任務規模夠大、或設計/用詞還沒共識，先讀 `docs/external-frameworks.md`，判斷這次是否該先用 grill-with-docs / OpenSpec，而不是直接進 `workflow/*.md` 動手——上一點是「查什麼」，這點是「動手前的規模/共識判斷」，兩者互不取代

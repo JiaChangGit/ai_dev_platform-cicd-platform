@@ -24,7 +24,8 @@ flowchart LR
 在 WSL 執行：
 
 ```bash
-cd /home/user/Work/ai_dev_platform-cicd-platform
+read -rp "Work absolute path: " WORK_ROOT
+cd "$WORK_ROOT/ai_dev_platform-cicd-platform"
 
 git status -sb
 git diff --check
@@ -40,7 +41,8 @@ python3 -B scripts/package_release.py --dry-run --allow-dirty
 目前 Git `user.email` 會寫入公開的 commit metadata。若不希望公開個人信箱，先到 GitHub **Settings → Emails** 啟用 Keep my email addresses private，複製 GitHub 顯示的 noreply 地址，再只對此儲存庫設定：
 
 ```bash
-git config user.email "<GitHub 顯示的 noreply 地址>"
+read -rp "GitHub noreply email: " COMMIT_EMAIL
+git config user.email "$COMMIT_EMAIL"
 git config --get user.name
 git config --get user.email
 ```
@@ -48,7 +50,7 @@ git config --get user.email
 ## 建立分支與 commit
 
 ```bash
-git switch -c agent/harden-ai-dev-platform
+git switch -c agent/update-platform-guide
 
 # 本次已確認整個工作樹都屬於平台強化範圍時，才能使用 -A。
 git add -A
@@ -57,9 +59,9 @@ git diff --cached --stat
 git diff --cached --check
 python3 -B scripts/pre_push_audit.py
 
-git commit -m "feat(platform): harden universal development workflow"
+git commit -m "docs(platform): update usage guide"
 python3 -B scripts/package_release.py --dry-run
-git push -u origin agent/harden-ai-dev-platform
+git push -u origin agent/update-platform-guide
 ```
 
 `dist/`、`__pycache__/`、個人 AI 工具設定與 `.ai/handoffs/` 已由 `.gitignore` 排除。`external/openai-cookbook/` 的大型快照是已追蹤的維護來源；預設下載包不包含完整 Cookbook，不要為了縮小發行 ZIP 而從 Git 來源儲存庫刪除它。
@@ -88,22 +90,22 @@ gh auth status
 gh pr create \
   --draft \
   --base main \
-  --head agent/harden-ai-dev-platform \
-  --title "feat(platform): harden universal development workflow" \
+  --head agent/update-platform-guide \
+  --title "docs(platform): update usage guide" \
   --fill
 ```
 
 若不安裝 `gh`，推送分支後開啟：
 
 ```text
-https://github.com/JiaChangGit/ai_dev_platform-cicd-platform/compare/main...agent/harden-ai-dev-platform?expand=1
+https://github.com/JiaChangGit/ai_dev_platform-cicd-platform/compare/main...agent/update-platform-guide?expand=1
 ```
 
 建立 PR 時保持 Draft，使用 `.github/pull_request_template.md`。GitHub Actions 的 `self-check` 與 `android-example` 實際通過後，再改為 Ready for review。
 
 ## GitHub 儲存庫設定
 
-可由 [`scripts/manage_collaborators.py`](../scripts/manage_collaborators.py) 套用 collaborator、required checks 與 branch protection。完整參數、GitLab 對應方式及 Token 安全規則見 [`docs/collaborator-management.md`](collaborator-management.md)。第一次執行必須先讓受邀者接受邀請，再重跑腳本啟用保護規則。
+可由 [`scripts/manage_collaborators.py`](../scripts/manage_collaborators.py) 套用 collaborator、required checks 與 branch protection。完整參數、GitLab 對應方式及 Token 安全規則見 [`docs/collaborator-management.md`](collaborator-management.md)。腳本會先設定保護政策，再對新帳號送出 `pull` 唯讀邀請；受邀者接受後，以相同參數重跑，才會升級權限、同步 CODEOWNERS 與指定 reviewer。
 
 在 **Settings** 完成下列設定：
 
@@ -117,10 +119,10 @@ https://github.com/JiaChangGit/ai_dev_platform-cicd-platform/compare/main...agen
 
 ## 發行儲存庫
 
-`/home/user/Work/ai_dev_platform-release` 使用獨立 `.git` 與同名 remote。若需要從零重建，先在 GitHub 建立同名的空白 **Private** 儲存庫，不要預先建立 README、`.gitignore` 或 License；未來的成品 URI、CI run ID 或核准識別資訊可能不適合公開。只有在 `.git` 不存在且遠端空白時，才執行下列初始化：
+`$WORK_ROOT/ai_dev_platform-release` 使用獨立 `.git` 與同名 remote。若需要從零重建，先在 GitHub 建立同名的空白 **Private** 儲存庫，不要預先建立 README、`.gitignore` 或 License；未來的成品 URI、CI run ID 或核准識別資訊可能不適合公開。只有在 `.git` 不存在且遠端空白時，才執行下列初始化：
 
 ```bash
-cd /home/user/Work/ai_dev_platform-release
+cd "$WORK_ROOT/ai_dev_platform-release"
 # 只有 .git 不存在且遠端空白時才執行下一行。
 git init -b main
 git config user.name "Jia-Chang Chang"
@@ -134,3 +136,14 @@ git push -u origin main
 ```
 
 遠端若已有 commit，應改用 clone 後搬入允許檔案，不得 force push。不得把這個 remote 改成 `JiaChangGit/ai_dev_platform-cicd-platform.git`，也不得把 ZIP、SBOM、簽章或其他建置成品提交到發行儲存庫。
+
+## 常見失誤
+
+| 現象 | 原因 | 處理方式 |
+|---|---|---|
+| `pre_push_audit.py` 要求 Git 身分 | 本機模式需要可追溯的 commit 作者 | 只對目前儲存庫設定 `user.name` 與 GitHub noreply email；CI 才使用 `--ci` |
+| Required check 名稱找不到 | workflow 尚未在遠端執行 | 先推送 workflow 並成功執行一次，再設定 `self-check`、`android-example` 等實際 job 名稱 |
+| PR 無人可以核准 | 只有 PR 作者是 Code Owner | 先加入獨立協作者並確認可審查，再啟用阻擋式 CODEOWNERS review |
+| 私人儲存庫設定 branch protection 回傳 403 | GitHub 方案不支援必要功能 | 升級適用方案；不得改公開或移除阻擋條件來繞過 |
+| 推錯 remote | 維護與 release 儲存庫名稱接近 | 每次推送前執行 `git remote -v`；兩個儲存庫不得共用 origin |
+| PR 合併後仍用舊程式封裝 | 本機 `main` 尚未更新 | `git switch main`、`git pull --ff-only origin main`，確認乾淨後再封裝 |

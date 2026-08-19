@@ -78,6 +78,10 @@ class ProductInitTest(unittest.TestCase):
             self.assertEqual(metadata["platformVersionPolicy"], "always-current")
             self.assertFalse((product / "external").exists())
             self.assertTrue((product / "app/src/main/AndroidManifest.xml").is_file())
+            product_guide = (product / "README.md").read_text(encoding="utf-8")
+            self.assertIn("../ai-dev-platform/docs/getting-started.md", product_guide)
+            self.assertIn("gradle --no-daemon :app:assembleRelease", product_guide)
+            self.assertIn("基本 CI 只執行 build、test 與 lint", product_guide)
             self.assertEqual(validate_release_layout(release), [])
             self.assertFalse((release / "external").exists())
             self.assertFalse((release / "app").exists())
@@ -85,6 +89,27 @@ class ProductInitTest(unittest.TestCase):
             for rule in (".env", "*.pem", "*.key", "credentials/", "/.ai/handoffs/", "*.zip"):
                 self.assertIn(rule, release_ignore)
             self.assertIn("獨立 `.git`", (release / "AGENTS.md").read_text(encoding="utf-8"))
+            self.assertIn(
+                "verify_release_readiness.py",
+                (release / "AGENTS.md").read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                "verify_release_readiness.py",
+                (release / "README.md").read_text(encoding="utf-8"),
+            )
+            release_guide = (release / "README.md").read_text(encoding="utf-8")
+            self.assertIn("RELEASE_VERSION=1.0.0", release_guide)
+            self.assertIn("不會連線到 CI", release_guide)
+            self.assertLess(
+                release_guide.index('git push -u origin "$RELEASE_BRANCH"'),
+                release_guide.index('git tag -a "v${RELEASE_VERSION}"'),
+            )
+            tag_index = release_guide.index('git tag -a "v${RELEASE_VERSION}"')
+            readiness_index = release_guide.index(
+                "python3 -B ../ai-dev-platform/scripts/verify_release_readiness.py",
+                tag_index,
+            )
+            self.assertLess(tag_index, readiness_index)
 
     def test_supports_every_ci_adapter(self):
         expected = {

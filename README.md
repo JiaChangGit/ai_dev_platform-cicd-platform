@@ -8,7 +8,7 @@
 
 平台核心與產品領域分離。同一套 `workflow/`、`governance/`、`templates/` 可用於 Android App、Linux kernel 模組或其他專案。領域專屬知識（例如 Material Design 或 kernel coding style）由產品儲存庫保存；查證方式見 [`docs/domain-adaptation.md`](docs/domain-adaptation.md)。
 
-新手可先閱讀 [`docs/index.html`](docs/index.html)：單頁整理實際程式所建立的物件、資料流、導入步驟、使用案例、專案邊界、開發紀錄清理與 GitHub 安全設定。
+第一次使用時，先依 [`docs/getting-started.md`](docs/getting-started.md) 完成安裝、產品初始化與驗證；需要圖解總覽時再開啟 [`docs/index.html`](docs/index.html)。
 
 ## 用途
 
@@ -23,7 +23,7 @@
 | 問題 | 解法 |
 |---|---|
 | 流程/規範重複教學 | `workflow/`、`governance/`、`templates/`，由 `AGENTS.md` 統一指揮 |
-| 模型/角色分派沒依據 | `registry/providers.yaml`、`registry/workflow.yaml`、`registry/skills.yaml` |
+| 角色分工與 skill 選擇沒有共同依據 | `registry/providers.yaml` 提供角色範例，`registry/workflow.yaml` 與 `registry/skills.yaml` 提供工作流程與 skill 索引；實際模型仍由各工具設定 |
 | 借用第三方資源但要能單純下載 zip | `external/` 用 **git subtree**（不是 submodule）同步，內容會實際併入本儲存庫 |
 | 語意對齊、規格管理、執行紀律要各自重新摸索 | 整合現成的開源框架（grill-with-docs / OpenSpec / superpowers），本儲存庫只負責「什麼時候用哪個、怎麼裝」，見 [`docs/external-frameworks.md`](docs/external-frameworks.md) |
 
@@ -71,6 +71,7 @@ ai-dev-platform/
 ```
 
 各目錄的詳細說明見 [`docs/repository-structure.md`](docs/repository-structure.md)。
+從安裝到正式發行的完整步驟、三種產品案例與常見失誤見 [`docs/getting-started.md`](docs/getting-started.md)。
 目前需求、實作與驗證的對照見 [`docs/requirements-traceability.md`](docs/requirements-traceability.md)。
 第三方 skill 的穩定範圍、手動呼叫、觸發限制與重疊解決見 [`docs/skill-governance.md`](docs/skill-governance.md)。
 GitHub 推送邊界、PR 步驟與儲存庫保護設定見 [`docs/publishing-to-github.md`](docs/publishing-to-github.md)。
@@ -81,11 +82,15 @@ GitHub 推送邊界、PR 步驟與儲存庫保護設定見 [`docs/publishing-to-
 ### 使用者：下載後離線使用（不需要 Git）
 
 ```bash
-# 更新既有的 Work/ai-dev-platform，先驗證 SHA-256 與逐檔 manifest。
+# 更新既有的 Work/ai-dev-platform。輸入三個平行目錄的共同父目錄。
+read -rp "Work absolute path: " WORK_ROOT
+PLATFORM_VERSION=1.3.0
+cd "$WORK_ROOT"
+
 python3 -B ai-dev-platform/scripts/install_platform.py \
-  ai-dev-platform-<version>.zip \
-  --checksum ai-dev-platform-<version>.zip.sha256 \
-  --work-root "$PWD"
+  "ai-dev-platform-${PLATFORM_VERSION}.zip" \
+  --checksum "ai-dev-platform-${PLATFORM_VERSION}.zip.sha256" \
+  --work-root "$WORK_ROOT"
 ```
 
 下載版不含 `.git`，也不需要執行 `git init`。安裝器保留腳本執行權限，以發行包模式完成自我檢查後設為唯讀；維護儲存庫專用的 Git 與 subtree 資料不在此模式要求範圍。預設包含真正可載入的第三方 skill、授權與必要參考內容；完整 OpenAI Cookbook 是選用套件。首次安裝的 bootstrap 方式見 [`docs/consumer-mode.md`](docs/consumer-mode.md)。
@@ -93,7 +98,8 @@ python3 -B ai-dev-platform/scripts/install_platform.py \
 建立產品：
 
 ```bash
-python3 scripts/init_product.py \
+# 目前位於 Work/；從唯讀平台呼叫初始化工具。
+python3 -B ai-dev-platform/scripts/init_product.py \
   --name my-product \
   --domain android \
   --ci github-actions
@@ -136,7 +142,7 @@ python3 scripts/init_product.py \
 
 產品程式碼不得放入本儲存庫。建立流程如下：
 
-1. 在 `Work/ai-dev-platform/` 執行 `scripts/init_product.py`，選擇產品領域與 CI 系統。
+1. 在 `Work/` 執行 `ai-dev-platform/scripts/init_product.py`，選擇產品領域與 CI 系統。
 2. 工具建立 `<product>-cicd-platform/`、`<product>-release/`、AI 工具入口、CI、領域文件、架構文件與第一份 ADR。
 3. 依 [`docs/domain-adaptation.md`](docs/domain-adaptation.md) 補齊產品專屬規範。
 4. CI 驗證通過後，依 `workflow/release.md` 將發行證據與 Release Note 交給發行儲存庫；建置成品留在 CI／成品平台。

@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GUIDE = ROOT / "docs" / "index.html"
+GETTING_STARTED = ROOT / "docs" / "getting-started.md"
 
 
 class GuideParser(HTMLParser):
@@ -48,7 +49,8 @@ class StaticGuideTest(unittest.TestCase):
         self.assertIn("connect-src 'none'", parser.csp)
         self.assertTrue(
             {"main", "purpose", "architecture", "flow-section", "setup", "cases",
-             "boundaries", "cleanup", "release", "github", "verify"}.issubset(parser.ids)
+             "boundaries", "cleanup", "release", "github", "troubleshooting",
+             "verify"}.issubset(parser.ids)
         )
         for private_marker in ("/home/", "\\Users\\", "@gmail.", "github.com/Jia"):
             self.assertNotIn(private_marker, text)
@@ -65,6 +67,27 @@ class StaticGuideTest(unittest.TestCase):
             "scripts/verify_release_readiness.py",
         ):
             self.assertIn(source, text)
+
+    def test_does_not_tell_products_to_modify_read_only_provider_registry(self):
+        text = GUIDE.read_text(encoding="utf-8")
+        self.assertNotIn("REPLACE_WITH_ACTUAL_MODEL_ID", text)
+        self.assertIn("不修改唯讀平台", text)
+
+    def test_distinguishes_evidence_contract_from_readiness(self):
+        text = GUIDE.read_text(encoding="utf-8")
+        self.assertIn("JSON 契約、必要 checks、SHA-256 格式", text)
+        self.assertIn("實體 artifact／signature／SBOM／provenance", text)
+        self.assertIn("不會連線查詢 CI run", text)
+
+    def test_onboarding_commands_use_safe_paths_and_release_order(self):
+        text = GETTING_STARTED.read_text(encoding="utf-8")
+        self.assertNotIn("cd <Work>", text)
+        self.assertNotIn("agent/release-v<version>", text)
+        self.assertIn("ai-dev-platform/scripts/init_product.py", text)
+        self.assertLess(
+            text.index('git push -u origin "$RELEASE_BRANCH"'),
+            text.index('git tag -a "v${RELEASE_VERSION}"'),
+        )
 
 
 if __name__ == "__main__":

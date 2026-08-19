@@ -27,11 +27,12 @@
     <div class="callout warn"><strong>內容依據：</strong>本頁以 <code>scripts/*.py</code>、<code>tests/</code>、<code>distribution/*.json</code>、CI workflow 與產品入口模板為準。若敘述與程式行為不同，必須以測試釐清並同步修正。</div>
     <div class="facts"><div class="fact"><strong>1 個共用唯讀平台</strong><span>產品固定讀取相鄰 <code>ai-dev-platform/</code> 的目前版本。</span></div><div class="fact"><strong>每項產品 2 個 Git repo</strong><span>開發 repo 保存原始碼；release repo 只保存發行中繼資料。</span></div><div class="fact"><strong>4 種 CI 入口</strong><span>GitHub Actions、GitLab CI、Jenkins、internal CI。</span></div></div>
   </header>
-  <nav aria-label="本頁目錄"><ul><li><a href="#purpose">目的</a></li><li><a href="#architecture">架構</a></li><li><a href="#flow-section">資料流</a></li><li><a href="#setup">建立步驟</a></li><li><a href="#cases">使用案例</a></li><li><a href="#boundaries">邊界</a></li><li><a href="#cleanup">移除紀錄</a></li><li><a href="#release">發行</a></li><li><a href="#github">GitHub</a></li><li><a href="#verify">驗證</a></li></ul></nav>
+  <nav aria-label="本頁目錄"><ul><li><a href="#purpose">目的</a></li><li><a href="#architecture">架構</a></li><li><a href="#flow-section">資料流</a></li><li><a href="#setup">建立步驟</a></li><li><a href="#cases">使用案例</a></li><li><a href="#boundaries">邊界</a></li><li><a href="#cleanup">移除紀錄</a></li><li><a href="#release">發行</a></li><li><a href="#github">GitHub</a></li><li><a href="#troubleshooting">常見失誤</a></li><li><a href="#verify">驗證</a></li></ul></nav>
   <main id="main">
     <section id="purpose">
       <h2 class="heading"><svg class="icon"><use href="#target"/></svg>1. 專案目的</h2>
       <p>平台把跨產品共用規則，與產品自己的程式碼、CI、領域規範及發行紀錄分開。Android App、SSD PCIe 韌體或其他領域可共用任務分類、審查與發行證據格式，但仍使用各自核准的工具鏈。</p>
+      <div class="callout"><strong>第一次操作：</strong>先依 <a href="getting-started.md">新手操作手冊</a> 完成安裝、初始化與驗證；本頁用來快速查閱架構、邊界與阻擋條件。</div>
       <div class="table-wrap"><table><thead><tr><th>程式實作能力</th><th>實際行為</th><th>未提供的能力</th></tr></thead><tbody>
         <tr><td>平台發行包（platform package）</td><td>依 <code>distribution/manifest.json</code> 建立單一頂層 ZIP，記錄逐檔 SHA-256、大小與權限。</td><td>不把維護 repo 的 <code>.git</code> 放進下載包。</td></tr>
         <tr><td>原子安裝（atomic install）</td><td>先驗證 ZIP 與 sidecar SHA-256，在暫存目錄解壓並執行自我檢查，成功後才替換舊平台。</td><td>目標含 <code>.git</code> 時拒絕替換。</td></tr>
@@ -78,49 +79,54 @@
       <h2 class="heading"><svg class="icon"><use href="#tool"/></svg>4. 建立與導入步驟</h2>
       <h3>A. 建立唯讀平台</h3>
       <div class="steps"><article class="step"><span class="n">1</span><h4>驗證維護來源</h4><p>開發中可用 <code>--allow-dirty</code> 診斷；正式包必須對應乾淨 commit。</p></article><article class="step"><span class="n">2</span><h4>建立與驗證 ZIP</h4><p>封裝器記錄逐檔 hash、大小、mode，驗證後才發布正式檔名。</p></article><article class="step"><span class="n">3</span><h4>安裝到 Work</h4><p>先在暫存目錄驗證與自我檢查，再原子替換並設為唯讀。</p></article></div>
-      <pre><code># 平台維護 repo
+      <pre><code># 平台維護 repo；輸入三個平行目錄的共同父目錄
+read -rp "Work absolute path: " WORK_ROOT
+PLATFORM_VERSION=1.3.0
 bash scripts/check.sh
 python3 -B -m unittest discover -s tests -v
 python3 -B scripts/audit_skills.py
 python3 -B scripts/pre_push_audit.py
 python3 -B scripts/package_release.py --source-ref "$(git rev-parse HEAD)"
-python3 -B scripts/verify_package.py dist/ai-dev-platform-1.3.0.zip
+python3 -B scripts/verify_package.py "dist/ai-dev-platform-${PLATFORM_VERSION}.zip"
 
-# &lt;Work&gt; 換成共同父目錄；先預覽再安裝
-python3 -B scripts/install_platform.py dist/ai-dev-platform-1.3.0.zip \
-  --work-root &lt;Work&gt; --dry-run
-	python3 -B scripts/install_platform.py dist/ai-dev-platform-1.3.0.zip \
-	  --work-root &lt;Work&gt;</code></pre>
+# 先預覽再安裝
+python3 -B scripts/install_platform.py "dist/ai-dev-platform-${PLATFORM_VERSION}.zip" \
+  --checksum "dist/ai-dev-platform-${PLATFORM_VERSION}.zip.sha256" \
+  --work-root "$WORK_ROOT" --dry-run
+python3 -B scripts/install_platform.py "dist/ai-dev-platform-${PLATFORM_VERSION}.zip" \
+  --checksum "dist/ai-dev-platform-${PLATFORM_VERSION}.zip.sha256" \
+  --work-root "$WORK_ROOT"</code></pre>
 	      <div class="callout"><strong>CI 模式：</strong>GitHub Actions、GitLab CI 或其他 runner 不建立 commit 時，使用 <code>python3 -B scripts/pre_push_audit.py --ci</code>。這只略過 runner 的 <code>user.name</code>／<code>user.email</code>，敏感資料、remote、忽略規則與建置成品仍是阻擋條件。</div>
 	      <div class="callout bad">不要在 <code>ai-dev-platform/</code> 執行 <code>git init</code>。安裝器發現目標含 <code>.git</code> 會停止，避免把維護 repo 當成可替換的下載包。</div>
       <h3>B. 建立 Android 或 SSD 產品</h3>
-      <pre><code>cd &lt;Work&gt;/ai-dev-platform
+      <pre><code>cd "$WORK_ROOT"
 
-python3 -B scripts/init_product.py \
+python3 -B ai-dev-platform/scripts/init_product.py \
   --name sample-android --display-name "Sample Android" \
   --domain android --ci github-actions --with-example
 
-python3 -B scripts/init_product.py \
+python3 -B ai-dev-platform/scripts/init_product.py \
   --name sample-ssd-fw --display-name "Sample SSD Firmware" \
   --domain ssd-pcie-fw --ci gitlab-ci --with-example</code></pre>
       <h3>C. 建立通用領域產品</h3>
       <p><code>generic</code> 沒有預設工具鏈；下列產品資訊與命令全部必填。平台會驗證為非空單行字串與安全相對 artifact path，但不會猜測命令是否符合未知框架。</p>
-      <pre><code>python3 -B scripts/init_product.py \
+      <pre><code>python3 -B ai-dev-platform/scripts/init_product.py \
   --name sample-service --display-name "Sample Service" \
   --domain generic --ci jenkins \
   --product-type "Web Service" --target-platform "Linux container" \
-  --language-framework "&lt;實際技術&gt;" \
-  --build-command "&lt;build command&gt;" --test-command "&lt;test command&gt;" \
-  --lint-command "&lt;lint command&gt;" --package-command "&lt;package command&gt;" \
-  --artifact-path "dist/&lt;artifact-name&gt;"</code></pre>
+  --language-framework "Go toolchain" \
+  --build-command "go build ./..." --test-command "go test ./..." \
+  --lint-command "go vet ./..." --package-command "make package" \
+  --artifact-path "dist/sample-service.tar.gz"</code></pre>
       <h3>D. 初始化後必須補齊</h3>
       <div class="table-wrap"><table><thead><tr><th>項目</th><th>狀態</th><th>設定內容</th></tr></thead><tbody>
-        <tr><td><code>registry/providers.yaml</code></td><td><span class="tag req">必要</span></td><td>目前 model ID 是 <code>REPLACE_WITH_ACTUAL_MODEL_ID</code>。換成實際可用設定，或移除不用的範例。</td></tr>
+        <tr><td><code>.ai/product.json</code></td><td><span class="tag keep">自動建立</span></td><td>確認產品名稱、領域、CI、release 儲存庫與 <code>always-current</code> 平台政策正確。</td></tr>
         <tr><td><code>docs/domain-standards.md</code></td><td><span class="tag req">必要</span></td><td>補產品核准的一手規格、SDK、工具鏈版本與限制。</td></tr>
         <tr><td>CI runner／成品平台</td><td><span class="tag req">必要</span></td><td>設定 runner、不可變成品 URI、簽章金鑰管理、SBOM 與 SLSA。</td></tr>
         <tr><td>CODEOWNERS／獨立核准</td><td><span class="tag req">必要</span></td><td>加入真實協作者；PR 作者不能自我核准，publisher 不能等於 release approver。</td></tr>
         <tr><td>外部框架</td><td><span class="tag opt">選用</span></td><td>OpenSpec、grill-with-docs、superpowers 不是核心依賴，需要時再啟用。</td></tr>
       </tbody></table></div>
+      <div class="callout warn"><strong>模型設定邊界：</strong><code>registry/providers.yaml</code> 位於共用唯讀平台，只提供角色與模型選型範例，不會設定 Codex、Claude Code 或 opencode。實際模型、登入與 Token 由各工具或組織核准的設定管理，不修改唯讀平台。</div>
     </section>
     <section id="cases">
       <h2 class="heading"><svg class="icon"><use href="#box"/></svg>5. 使用案例</h2>
@@ -188,6 +194,7 @@ python3 -B scripts/package_release.py --dry-run --allow-dirty</code></pre>
       </svg></div>
       <p><code>verify_release_readiness.py</code> 採 fail-closed。必要檔不存在、hash 不符、URI 含 <code>latest</code>／<code>current</code>／<code>snapshot</code>／<code>nightly</code>、成品位於 release repo、簽章失敗、commit 不屬於 ref、工作樹不乾淨或 tag 不指向 HEAD，都會回傳失敗。</p>
       <details open><summary>Release evidence 必要內容</summary><div><ul><li><code>schemaVersion: 2</code>、產品與語意化版本（Semantic Versioning）。</li><li>來源 repository、完整 commit SHA、允許的完整 ref。</li><li>不可變 artifact URI、artifact SHA-256、signature URI／SHA-256／algorithm。</li><li>CI system、run ID，以及 build、test、lint、security、package。</li><li>SPDX 2.x 或 CycloneDX JSON SBOM。</li><li>SLSA provenance v1。</li><li>獨立核准者與 publisher，兩者不可相同。</li></ul></div></details>
+      <div class="callout warn"><strong>自動驗證邊界：</strong>程式會核對 evidence 宣告值、本機 Git 與下載檔案，但不會連線查詢 CI run、成品 URI 或帳號身分。發布者仍須在實際平台確認 run 成功、材料來自受信任不可變位置，且核准者確實獨立。</div>
     </section>
 
     <section id="github">
@@ -210,16 +217,32 @@ git push -u origin agent/publish-platform-guide</code></pre>
       <h3>新增 collaborator／member</h3>
       <p>平台維護 repository 與 release repository 各自保存 <code>scripts/manage_collaborators.py</code>。預設只顯示計畫；加上 <code>--apply</code> 才會同步 GitHub／GitLab CODEOWNERS、加入成員並設定 PR／MR 與預設分支保護。</p>
       <pre><code># 在兩個 repository 內分別執行
-python3 -B scripts/manage_collaborators.py add &lt;username&gt;
-python3 -B scripts/manage_collaborators.py add &lt;username&gt; --apply
+read -rp "Repository username: " COLLABORATOR_USERNAME
+python3 -B scripts/manage_collaborators.py add "$COLLABORATOR_USERNAME"
+python3 -B scripts/manage_collaborators.py add "$COLLABORATOR_USERNAME" --preflight-only
+python3 -B scripts/manage_collaborators.py add "$COLLABORATOR_USERNAME" --apply
 python3 -B scripts/manage_collaborators.py check</code></pre>
       <ul><li>GitHub 認證只讀取本機 <code>gh auth login</code> 狀態。</li><li>GitLab Token 只從 <code>GITLAB_TOKEN</code> 環境變數讀取，不寫入 CI 或 Git；必須是有效且包含 <code>api</code> scope 的 access token。</li><li>GitHub Free 的私人 repository 無法啟用 branch protection；腳本會在任何寫入前停止，不會改成公開或自動降低規則。</li><li>遠端寫入先設定保護政策，再授予成員權限；GitHub 新帳號只先收到唯讀邀請，接受後重跑才升為 write。</li><li>GitLab 先確認 Maintainer／Owner 權限、active username、direct membership、group membership lock、分支與核准政策 API；強制 Code Owner 與 approval rule 需要 Premium／Ultimate，不支援時停止，不降低規則。</li><li>CI 只執行唯讀的 <code>check</code>，不持有 repository 管理 Token。</li></ul>
       <h3>發佈本頁</h3>
       <ol><li>將 GitHub Pages source 指向發布 branch 的 <code>/docs</code> 目錄，或使用組織既有 Pages workflow。</li><li>首頁使用 <code>docs/index.html</code>。</li><li>公開前搜尋真實本機路徑、email、內部 URI、Token、run ID 或未公開產品名稱。</li><li>Pages 只展示說明；平台 ZIP 與產品成品仍留在 CI／成品平台。</li></ol>
     </section>
 
+    <section id="troubleshooting">
+      <h2 class="heading"><svg class="icon"><use href="#tool"/></svg>10. 常見使用失誤</h2>
+      <div class="table-wrap"><table><thead><tr><th>現象</th><th>原因</th><th>正確處理</th></tr></thead><tbody>
+        <tr><td>找不到 <code>scripts/init_product.py</code></td><td>在 <code>&lt;Work&gt;/</code> 使用了平台內部相對路徑。</td><td>使用 <code>ai-dev-platform/scripts/init_product.py</code>，或先切換到 <code>ai-dev-platform/</code>。</td></tr>
+        <tr><td>安裝器拒絕含 <code>.git</code> 的目標</td><td>把維護儲存庫當成唯讀平台。</td><td>確認目標是 <code>&lt;Work&gt;/ai-dev-platform</code>；不要直接刪除用途不明的 Git 歷史。</td></tr>
+        <tr><td>平台檔案不可寫</td><td>安裝器已套用預期的唯讀權限。</td><td>產品程式碼放在產品開發儲存庫；平台變更回維護儲存庫開 PR。</td></tr>
+        <tr><td>新 collaborator 第一次套用後等待</td><td>新帳號尚未接受 <code>pull</code> 唯讀邀請。</td><td>對方接受邀請後，以完全相同的 <code>--apply</code> 命令重跑。</td></tr>
+        <tr><td>Evidence 通過但 readiness 失敗</td><td>JSON 格式正確，不代表實體成品、簽章、SBOM、SLSA、來源與 tag 正確。</td><td>依 <code>verify_release_readiness.py</code> 的 <code>[FAIL]</code> 修正，不可只執行 evidence verifier。</td></tr>
+        <tr><td>Release layout 拒絕 APK、ELF、ZIP 或 SBOM</td><td>把建置成品放進發行儲存庫。</td><td>實體檔留在成品平台或儲存庫外暫存目錄；release repo 只保存 URI 與 SHA-256。</td></tr>
+        <tr><td>PR 合併後仍封裝舊程式</td><td>本機尚未切回並更新 <code>main</code>。</td><td>執行 <code>git switch main</code>、<code>git pull --ff-only origin main</code>，確認工作樹乾淨後重建 ZIP。</td></tr>
+      </tbody></table></div>
+      <p>完整處理方式與三種產品案例見 <a href="getting-started.md">新手操作手冊</a>。</p>
+    </section>
+
     <section id="verify">
-      <h2 class="heading"><svg class="icon"><use href="#shield"/></svg>10. 驗證與維護</h2>
+      <h2 class="heading"><svg class="icon"><use href="#shield"/></svg>11. 驗證與維護</h2>
       <h3>修改平台後</h3><pre><code>bash scripts/check.sh
 python3 -B -m unittest discover -s tests -v
 python3 -B scripts/audit_skills.py
@@ -234,7 +257,7 @@ python3 -B ai-dev-platform/scripts/audit_workspace.py &lt;Work&gt;
 &lt;lint command&gt;</code></pre>
       <h3>主要程式依據</h3>
       <div class="table-wrap"><table><thead><tr><th>程式／設定</th><th>本頁據此確認的行為</th></tr></thead><tbody>
-        <tr><td><code>scripts/init_product.py</code></td><td>產品命名、兩 repo、CI 轉接、入口檔、metadata 與 release 骨架。</td></tr><tr><td><code>scripts/package_release.py</code></td><td>乾淨來源、固定 ZIP metadata、逐檔 manifest、原子發布。</td></tr><tr><td><code>scripts/verify_package.py</code></td><td>安全路徑、單一頂層、hash／size／mode、第三方授權證據。</td></tr><tr><td><code>scripts/install_platform.py</code></td><td>sidecar SHA-256、暫存解壓、發行包自我檢查、回復與唯讀權限。</td></tr><tr><td><code>scripts/audit_workspace.py</code></td><td>平台無 Git、唯讀、產品 always-current、兩個獨立 Git repo。</td></tr><tr><td><code>scripts/verify_release_layout.py</code></td><td>release repo 的檔案與目錄允許清單。</td></tr><tr><td><code>scripts/verify_release_evidence.py</code></td><td>schema、必要 checks、hash、SBOM、SLSA 與獨立核准。</td></tr><tr><td><code>scripts/verify_release_readiness.py</code></td><td>實體 artifact／signature／SBOM／provenance、source commit、tag 與工作樹。</td></tr><tr><td><code>tests/</code></td><td>兩 repo、Android 結構、SSD 實際建置、release layout 與簽章發行案例。</td></tr>
+        <tr><td><code>scripts/init_product.py</code></td><td>產品命名、兩 repo、CI 轉接、入口檔、metadata 與 release 骨架。</td></tr><tr><td><code>scripts/package_release.py</code></td><td>乾淨來源、固定 ZIP metadata、逐檔 manifest、原子發布。</td></tr><tr><td><code>scripts/verify_package.py</code></td><td>安全路徑、單一頂層、hash／size／mode、第三方授權證據。</td></tr><tr><td><code>scripts/install_platform.py</code></td><td>sidecar SHA-256、暫存解壓、發行包自我檢查、回復與唯讀權限。</td></tr><tr><td><code>scripts/audit_workspace.py</code></td><td>平台無 Git、唯讀、產品 always-current、兩個獨立 Git repo。</td></tr><tr><td><code>scripts/verify_release_layout.py</code></td><td>release repo 的檔案與目錄允許清單。</td></tr><tr><td><code>scripts/verify_release_evidence.py</code></td><td>JSON 契約、必要 checks、SHA-256 格式、SBOM／SLSA 欄位與核准者分離。</td></tr><tr><td><code>scripts/verify_release_readiness.py</code></td><td>實體 artifact／signature／SBOM／provenance、source commit、tag 與工作樹。</td></tr><tr><td><code>tests/</code></td><td>兩 repo、Android 結構、SSD 實際建置、release layout 與簽章發行案例。</td></tr>
       </tbody></table></div>
       <div class="callout ok"><strong>同步維護：</strong>新增功能時，同一個變更應更新程式、測試、registry、distribution manifest 與本頁。不能只修改說明，讓初始化或驗證程式維持舊行為。</div>
     </section>
