@@ -18,13 +18,22 @@ from package_release import zip_write  # noqa: E402
 
 
 class WorkspaceToolTest(unittest.TestCase):
-    def make_archive(self, base: Path) -> tuple[Path, Path]:
+    def make_archive(
+        self,
+        base: Path,
+        check_script: bytes = (
+            b"#!/usr/bin/env bash\n"
+            b"set -e\n"
+            b"test \"${1:-}\" = \"--consumer\"\n"
+            b"test -f AGENTS.md\n"
+        ),
+    ) -> tuple[Path, Path]:
         payloads = {
             "AGENTS.md": b"# Rules\n",
             "CLAUDE.md": b"# Claude\n",
             "README.md": b"# Platform\n",
             "opencode.json": b"{}\n",
-            "scripts/check.sh": b"#!/usr/bin/env bash\nset -e\ntest -f AGENTS.md\n",
+            "scripts/check.sh": check_script,
         }
         entries = []
         archive = base / "platform.zip"
@@ -55,6 +64,24 @@ class WorkspaceToolTest(unittest.TestCase):
             self.assertFalse((target / "obsolete.txt").exists())
             self.assertTrue(stat.S_IMODE((target / "scripts/check.sh").stat().st_mode) & 0o111)
             self.assertEqual(stat.S_IMODE((target / "AGENTS.md").stat().st_mode) & 0o222, 0)
+
+    @unittest.skipUnless(os.name == "posix", "需要 POSIX 檔案權限")
+    def test_installer_reports_consumer_check_output_and_keeps_target(self):
+        with tempfile.TemporaryDirectory() as temp:
+            work = Path(temp)
+            target = work / "ai-dev-platform"
+            target.mkdir()
+            marker = target / "stable.txt"
+            marker.write_text("stable", encoding="utf-8")
+            archive, checksum = self.make_archive(
+                work,
+                b"#!/usr/bin/env bash\necho consumer-check-detail\nexit 1\n",
+            )
+
+            with self.assertRaisesRegex(ValueError, "consumer-check-detail"):
+                install_platform(archive, checksum, work)
+
+            self.assertEqual(marker.read_text(encoding="utf-8"), "stable")
 
     @unittest.skipUnless(os.name == "posix", "需要 POSIX 檔案權限")
     def test_audit_accepts_always_current_product(self):

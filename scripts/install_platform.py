@@ -157,10 +157,22 @@ def install_platform(
             overlay_optional_pack(pack, staged, str(platform_manifest.get("version")))
         env = os.environ.copy()
         env["PYTHONDONTWRITEBYTECODE"] = "1"
-        subprocess.run(
-            ["bash", "scripts/check.sh"], cwd=staged, env=env, check=True,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-        )
+        try:
+            subprocess.run(
+                ["bash", "scripts/check.sh", "--consumer"],
+                cwd=staged,
+                env=env,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+        except subprocess.CalledProcessError as error:
+            detail = (error.stdout or "").strip()
+            message = "發行包自我檢查失敗"
+            if detail:
+                message = f"{message}：\n{detail}"
+            raise ValueError(message) from error
         try:
             if target.exists():
                 os.replace(target, backup)

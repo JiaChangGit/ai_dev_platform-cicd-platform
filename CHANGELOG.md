@@ -7,6 +7,7 @@
 ## [1.3.0]
 
 - 新增各 repository 可獨立執行的 collaborator 管理腳本，同步 GitHub／GitLab CODEOWNERS、reviewer、必要 CI 與預設分支保護；管理 Token 不進入 CI 或 Git 歷史
+- 修正平台安裝器誤用維護儲存庫檢查的問題；發行包改用 consumer mode，並在檢查失敗時保留舊版與顯示具體原因
 
 ## [1.2.0]
 

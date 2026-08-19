@@ -15,9 +15,26 @@
 #  11. 專案自有內容是否誤用非台灣繁體術語
 #  12. 共用平台、發行邊界與跨領域範例是否符合架構決策
 #
-# 用法: scripts/check.sh
+# 用法:
+#   scripts/check.sh             # 維護儲存庫（maintainer repository）
+#   scripts/check.sh --consumer  # 無 .git 的發行包（consumer package）
 
 set -uo pipefail
+
+if [ "$#" -gt 1 ]; then
+  echo "用法: scripts/check.sh [--consumer]" >&2
+  exit 2
+fi
+
+case "${1:-}" in
+  "") CHECK_MODE="maintainer" ;;
+  --consumer) CHECK_MODE="consumer" ;;
+  *)
+    echo "用法: scripts/check.sh [--consumer]" >&2
+    exit 2
+    ;;
+esac
+export CHECK_MODE
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
@@ -147,6 +164,7 @@ echo "== 9. distribution / adapter JSON 與檔案參照 =="
 if command -v python3 >/dev/null 2>&1; then
   py_out="$(python3 - <<'PYEOF'
 import json
+import os
 from pathlib import Path
 
 errors = []
@@ -220,9 +238,10 @@ try:
             if actual != entry.get("snapshotTree"):
                 errors.append(f"第三方項目 {entry.get('id', '?')} snapshotTree 與 Git tree 不同步")
 
-    try:
+    subtree_registry = Path("external/subtrees.yaml")
+    if subtree_registry.is_file():
         import yaml
-        subtree_items = yaml.safe_load(Path("external/subtrees.yaml").read_text(encoding="utf-8"))["subtrees"]
+        subtree_items = yaml.safe_load(subtree_registry.read_text(encoding="utf-8"))["subtrees"]
         subtree_by_name = {item["name"]: item for item in subtree_items}
         for entry in notices.get("entries", []):
             source = subtree_by_name.get(entry.get("id"))
@@ -233,8 +252,8 @@ try:
             for key, expected in expected_fields.items():
                 if entry.get(key) != expected:
                     errors.append(f"第三方項目 {entry.get('id', '?')} 的 {key} 與 external/subtrees.yaml 不同步")
-    except ImportError:
-        pass
+    elif os.environ.get("CHECK_MODE") != "consumer":
+        errors.append("維護儲存庫缺少 external/subtrees.yaml")
 except Exception as exc:
     errors.append(f"無法驗證第三方 notices: {exc}")
 
@@ -361,7 +380,13 @@ else
   fail "產品入口或初始化中繼資料未落實 always-current 政策"
 fi
 
-if grep -q 'self-hosting stable policy' AGENTS.md && [ -f .ai/product.json ]; then
+if [ "$CHECK_MODE" = "consumer" ]; then
+  if [ -e .git ]; then
+    fail "發行包不得包含 .git"
+  else
+    pass "發行包不含 Git 維護資料"
+  fi
+elif grep -q 'self-hosting stable policy' AGENTS.md && [ -f .ai/product.json ]; then
   pass "平台自我開發固定讀取穩定 Work/ai-dev-platform"
 else
   fail "平台自我開發缺少穩定規則來源"
@@ -374,7 +399,9 @@ else
   fail "發行儲存庫邊界缺少流程或初始化入口"
 fi
 
-if python3 -B scripts/manage_collaborators.py check >/dev/null; then
+if [ "$CHECK_MODE" = "consumer" ]; then
+  pass "發行包不執行 Git 協作者政策檢查"
+elif python3 -B scripts/manage_collaborators.py check >/dev/null; then
   pass "GitHub／GitLab CODEOWNERS 與 CI 政策檔一致"
 else
   fail "collaborator、CODEOWNERS 或 CI 政策檔不同步"
