@@ -88,7 +88,7 @@ python3 -B ai-dev-platform/scripts/install_platform.py \
   --work-root "$PWD"
 ```
 
-下載版不含 `.git`，也不需要執行 `git init`。安裝器保留腳本執行權限，完成自我檢查後設為唯讀。預設包含真正可載入的第三方 skill、授權與必要參考內容；完整 OpenAI Cookbook 是選用套件。首次安裝的 bootstrap 方式見 [`docs/consumer-mode.md`](docs/consumer-mode.md)。
+下載版不含 `.git`，也不需要執行 `git init`。安裝器保留腳本執行權限，以發行包模式完成自我檢查後設為唯讀；維護儲存庫專用的 Git 與 subtree 資料不在此模式要求範圍。預設包含真正可載入的第三方 skill、授權與必要參考內容；完整 OpenAI Cookbook 是選用套件。首次安裝的 bootstrap 方式見 [`docs/consumer-mode.md`](docs/consumer-mode.md)。
 
 建立產品：
 

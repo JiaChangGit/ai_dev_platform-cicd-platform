@@ -37,7 +37,7 @@ flowchart LR
      --work-root "$PWD"
    ```
 
-   更新時直接執行既有平台內的 `scripts/install_platform.py`。工具會核對 sidecar SHA-256、逐檔 hash 與權限，自我檢查通過後原子替換目錄，失敗會保留舊版。
+   更新時直接執行既有平台內的 `scripts/install_platform.py`。工具會核對 sidecar SHA-256、逐檔 hash 與權限，再以 `scripts/check.sh --consumer` 檢查發行包。這個模式不要求發行包具備 `.git`、`.ai/product.json` 或 subtree 同步資料；其他完整性檢查仍會執行。全部通過後才原子替換目錄，失敗會保留舊版並顯示檢查結果。
 
    需要完整 OpenAI Cookbook 時，在同一次安裝加上 `--optional-pack ai-dev-platform-openai-cookbook-<version>.zip`。選用 ZIP 與其 `.sha256` 必須與預設包版本一致；安裝器會先驗證再疊加，不會直接改寫現有唯讀目錄。
 
