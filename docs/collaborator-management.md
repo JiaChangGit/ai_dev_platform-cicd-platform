@@ -57,6 +57,12 @@ GitLab 的強制 Code Owner 核准與 project approval rule 需要 Premium 或 U
 4. GitLab 使用 Project Access Token 或 Personal Access Token 時，必須包含標準 `api` scope；`read_api`、`write_repository` 與 CI Job Token 都不足以管理 member、project、protected branch 與 approval rule。Token 只放在執行當下的環境變數。
 5. GitLab 執行者必須是專案 Maintainer 或 Owner；Developer 無法新增 member 或設定必要的 repository policy。
 
+以下命令在同一個終端機執行。先輸入三個平行目錄的共同父目錄：
+
+```bash
+read -rp "Work absolute path: " WORK_ROOT
+```
+
 ## 新增 GitHub collaborator
 
 兩個 repository 必須分別執行，避免其中一個遠端失敗時影響另一個。
@@ -64,22 +70,23 @@ GitLab 的強制 Code Owner 核准與 project approval rule 需要 Premium 或 U
 ### 平台維護 repository
 
 ```bash
-cd /home/user/Work/ai_dev_platform-cicd-platform
+read -rp "GitHub username: " GITHUB_USERNAME
+cd "$WORK_ROOT/ai_dev_platform-cicd-platform"
 
 # 預覽：不寫檔、不呼叫 API。
-python3 -B scripts/manage_collaborators.py add <github-username>
+python3 -B scripts/manage_collaborators.py add "$GITHUB_USERNAME"
 
 # 遠端唯讀預檢：查詢 API，但不寫入檔案或設定。
-python3 -B scripts/manage_collaborators.py add <github-username> --preflight-only
+python3 -B scripts/manage_collaborators.py add "$GITHUB_USERNAME" --preflight-only
 
-# 套用：加入 collaborator、同步兩份 CODEOWNERS、設定 PR 與 main 保護規則。
-python3 -B scripts/manage_collaborators.py add <github-username> --apply
+# 套用：先設定 PR 與 main 保護規則，再處理權限與 CODEOWNERS。
+python3 -B scripts/manage_collaborators.py add "$GITHUB_USERNAME" --apply
 ```
 
 若要同時把對方加入既有 PR，例如 PR `#1`：
 
 ```bash
-python3 -B scripts/manage_collaborators.py add <github-username> \
+python3 -B scripts/manage_collaborators.py add "$GITHUB_USERNAME" \
   --apply \
   --request-review 1
 ```
@@ -87,7 +94,7 @@ python3 -B scripts/manage_collaborators.py add <github-username> \
 平台維護 repository 預設將 `self-check` 與 `android-example` 設為 required checks。若實際 job 名稱不同，用多個 `--required-check` 明確覆寫：
 
 ```bash
-python3 -B scripts/manage_collaborators.py add <github-username> \
+python3 -B scripts/manage_collaborators.py add "$GITHUB_USERNAME" \
   --apply \
   --required-check self-check \
   --required-check android-example
@@ -96,10 +103,11 @@ python3 -B scripts/manage_collaborators.py add <github-username> \
 ### Release repository
 
 ```bash
-cd /home/user/Work/ai_dev_platform-release
+cd "$WORK_ROOT/ai_dev_platform-release"
 
-python3 -B scripts/manage_collaborators.py add <github-username>
-python3 -B scripts/manage_collaborators.py add <github-username> --apply
+python3 -B scripts/manage_collaborators.py add "$GITHUB_USERNAME"
+python3 -B scripts/manage_collaborators.py add "$GITHUB_USERNAME" --preflight-only
+python3 -B scripts/manage_collaborators.py add "$GITHUB_USERNAME" --apply
 ```
 
 release repository 會把 `repository-policy` 設為 required check。兩個 repository 的預設協作者權限都是 `push`；可用 `--github-permission push|maintain|admin` 調整。Code Owner 必須至少具有 write（`push`）權限，因此腳本不接受 `pull` 或 `triage`。
@@ -120,21 +128,23 @@ GitHub 新邀請不會立即成為有效 collaborator。腳本會先套用 branc
 目前兩個 repository 的 `origin` 指向 GitHub，因此要明確提供 GitLab project。以下命令只處理 GitLab；若要同時同步 GitHub，移除 `--skip-github`。
 
 ```bash
-cd /home/user/Work/ai_dev_platform-cicd-platform
+cd "$WORK_ROOT/ai_dev_platform-cicd-platform"
 
 read -rsp "GitLab Token: " GITLAB_TOKEN
 printf '\n'
 export GITLAB_TOKEN
+read -rp "GitLab username: " GITLAB_USERNAME
+read -rp "GitLab project path (group/project): " GITLAB_PROJECT
 
-python3 -B scripts/manage_collaborators.py add <gitlab-username> \
+python3 -B scripts/manage_collaborators.py add "$GITLAB_USERNAME" \
   --preflight-only \
   --skip-github \
-  --gitlab-project <group/project>
+  --gitlab-project "$GITLAB_PROJECT"
 
-python3 -B scripts/manage_collaborators.py add <gitlab-username> \
+python3 -B scripts/manage_collaborators.py add "$GITLAB_USERNAME" \
   --apply \
   --skip-github \
-  --gitlab-project <group/project>
+  --gitlab-project "$GITLAB_PROJECT"
 
 unset GITLAB_TOKEN
 ```
@@ -142,10 +152,10 @@ unset GITLAB_TOKEN
 指定既有 Merge Request reviewer，例如 MR `!12`：
 
 ```bash
-python3 -B scripts/manage_collaborators.py add <gitlab-username> \
+python3 -B scripts/manage_collaborators.py add "$GITLAB_USERNAME" \
   --apply \
   --skip-github \
-  --gitlab-project <group/project> \
+  --gitlab-project "$GITLAB_PROJECT" \
   --request-merge-request-review 12
 ```
 
@@ -160,7 +170,8 @@ release repository 也要在該目錄內獨立執行相同命令，並把 `--git
 尚未準備遠端權限時，可先同步 CODEOWNERS：
 
 ```bash
-python3 -B scripts/manage_collaborators.py add <username> --apply --local-only
+read -rp "Repository username: " COLLABORATOR_USERNAME
+python3 -B scripts/manage_collaborators.py add "$COLLABORATOR_USERNAME" --apply --local-only
 python3 -B scripts/manage_collaborators.py check
 git diff -- .github/CODEOWNERS .gitlab/CODEOWNERS
 ```
@@ -185,6 +196,17 @@ python3 -B scripts/manage_collaborators.py check
 - release repository 出現允許清單外的檔案。
 
 遠端 branch protection 是否真的生效，仍須用 repository 管理權限在 GitHub／GitLab 設定頁或 API 查核；CI 不持有管理 Token，因此不代替此項查核。
+
+## 常見失誤
+
+| 現象 | 原因 | 處理方式 |
+|---|---|---|
+| 第一次 `--apply` 回傳狀態碼 2 | 新 GitHub 帳號只收到唯讀邀請，尚未成為有效 collaborator | 對方接受後，以完全相同參數重跑；不要把狀態碼 2 當成部分失敗後改用手動降級 |
+| GitHub 回傳私人儲存庫方案限制 | 目前方案不支援必要 branch protection | 升級適用方案；不得改公開或使用 `--no-configure-policy` 繞過 |
+| Required check 不存在 | workflow 尚未在遠端產生該 job 名稱 | 先成功執行一次 CI，再使用實際 check 名稱 |
+| GitLab 顯示 Token scope 不足 | 使用了 `read_api`、`write_repository` 或 CI Job Token | 改用包含標準 `api` scope 的核准 Token，執行完立刻 `unset` |
+| `--preflight-only` 通過後 `--apply` 仍失敗 | 預檢與寫入之間的遠端狀態改變 | 依已顯示的 `[OK]`／`[FAIL]` 判斷進度，修正後用相同參數重跑 |
+| CODEOWNERS 已改，但遠端權限未完成 | 使用了 `--local-only` | 在合併 CODEOWNERS 前，由管理者完成遠端預檢與政策設定 |
 
 ## 官方 API 依據
 

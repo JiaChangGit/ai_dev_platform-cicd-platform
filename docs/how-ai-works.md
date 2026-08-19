@@ -7,7 +7,7 @@ Codex 與 opencode 直接讀取根目錄 `AGENTS.md`；Claude Code 透過根目�
 1. `AGENTS.md`（主要入口，開始任務時優先讀取）
 2. 依任務類型查 `registry/workflow.yaml`，取得該讀哪些 `workflow/` 與 `governance/` 文件
 3. 需要模板時查 `templates/`
-4. 需要決定「這個子任務該用哪個角色/模型」時查 `registry/providers.yaml`
+4. 需要決定子任務角色時查 `registry/providers.yaml`；其中 model ID 是選型範例，不會設定或自動切換實際工具模型
 5. 遇到領域相關的不確定性時查 `docs/domain-adaptation.md`，以權威來源驗證，不憑訓練資料印象作答
 
 ## Feature 任務範例
@@ -24,3 +24,5 @@ Codex 與 opencode 直接讀取根目錄 `AGENTS.md`；Claude Code 透過根目�
 - 交接時依 `templates/task-handoff.md` 建立實體檔案，記錄設計決策、假設與未解問題。多數 CLI 呼叫無對話狀態，不得只靠對話上下文交接。
 - 若角色間對某個決定有分歧，記錄在交接檔案裡，必要時升級給人員裁定（見 `governance/review.md` 的升級機制）
 - reviewer 必須符合 `governance/review.md` 的最低獨立性要求，不得在同一個 context 內同時實作與審查。
+
+實際模型、登入與 Token 由 Codex、Claude Code、opencode 或組織核准的設定管理。不要把憑證寫進 `registry/providers.yaml`，也不要為了替單一產品選模型而修改共用唯讀平台。

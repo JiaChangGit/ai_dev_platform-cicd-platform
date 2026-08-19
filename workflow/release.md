@@ -47,9 +47,10 @@ flowchart LR
    - 內容以第 5 步的變更清單為準，不直接貼上 commit log。
 
 7. **標記與發布** — `product-release`
-   - commit 發行證據與 Release Note，依 `governance/release.md` 建立指向 HEAD 的版本標籤（tag）。
-   - 執行 `scripts/verify_release_readiness.py`；任一關卡失敗都不得發布或推進。完整參數見 `docs/release-evidence.md`。
-   - 將已核准的建置成品發布到對應通路。
+   - 在功能分支 commit 發行證據與 Release Note，經必要 CI 與獨立核准合併到 `main`；不得直接推送 `main`。
+   - 在合併後的 `main` 建立尚未推送、指向 HEAD 的版本標籤（tag）。若採 squash merge，不得沿用 PR 分支的 commit 或 tag。
+   - 執行 `scripts/verify_release_readiness.py`；任一關卡失敗都不得推送 tag、發布或推進。完整參數見 `docs/release-evidence.md`。
+   - Readiness 通過後才推送 tag，並將已核准的建置成品發布到對應通路。
 
 8. **發布後監控** — `product-release`
    - 依產品定義的觀察期監控錯誤回報與效能指標。

@@ -28,6 +28,8 @@ flowchart TB
 
 平台可離線驗證轉接器的契約結構，但 GitLab、Jenkins 與內部 CI 的 runner、權限、成品 API 與密鑰管理必須在產品實際環境驗收。`scripts/validate_ci_adapters.py` 不會將靜態模板驗證誤報為已完成線上連線。
 
+`verify_release_evidence.py` 與 `verify_release_readiness.py` 也不會連線查詢 CI run、成品 URI 或帳號身分。前者驗證 evidence 契約；後者核對本機 Git 與下載檔案。發布者仍須在實際 CI／Git 服務確認 run 成功、材料下載來源可信任，且核准者確實獨立。
+
 新增 CI 系統時，必須新增轉接器文件與模板、登記到 `registry/ci-adapters.yaml`，並保留所有必要的發行證據欄位。
 
 CI 憑證（credential）只能存放在 CI 的秘密資料儲存區（secret store）。不得寫入 YAML、模板、manifest 或發行證據。

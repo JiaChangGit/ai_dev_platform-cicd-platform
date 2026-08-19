@@ -27,7 +27,7 @@
 | `profiles/` | Android、嵌入式韌體（embedded firmware）等領域的 CI 起始檢查清單 | 否（選用） |
 | `workflow/` | 各類任務的標準作業流程 | 是 |
 | `governance/` | 分支/commit/審查/發布/文件/安全政策/執行紀律 | 是 |
-| `registry/` | AI 供應商、workflow、skill、外部框架（`frameworks.yaml`）的機器可讀索引 | 是（內容為範例，需依專案覆寫） |
+| `registry/` | AI 角色範例、workflow、skill、外部框架（`frameworks.yaml`）的機器可讀索引；不保存工具登入或實際產品憑證 | 是（角色與 model ID 為選型範例，不會自動設定工具） |
 | `templates/` | Issue / PR / ADR / 架構 / benchmark / release note / task-handoff 模板；`product-entrypoint/` 子目錄是產品儲存庫的入口檔模板（見 `AGENTS.md` 第 3 節） | 是 |
 | `docs/` | 關於本儲存庫自身的說明 | — |
 | `scripts/` | 產品初始化、發行邊界檢查、subtree 同步、自我檢查、commit lint、離線發行包建立與驗證 | 是 |
