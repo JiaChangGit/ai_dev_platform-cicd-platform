@@ -27,7 +27,7 @@ flowchart LR
 
 ```bash
 read -rp "Work absolute path: " WORK_ROOT
-PLATFORM_VERSION=1.3.0
+PLATFORM_VERSION=1.4.0
 cd "$WORK_ROOT"
 ```
 
