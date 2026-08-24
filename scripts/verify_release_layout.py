@@ -18,7 +18,9 @@ ROOT_FILES = {
     "CLAUDE.md",
     "CODEOWNERS",
     "Jenkinsfile",
+    "LICENSE",
     "README.md",
+    "SECURITY.md",
     "opencode.json",
 }
 ROOT_DIRECTORIES = {".github", ".gitlab", "release-evidence", "release-notes", "scripts"}
@@ -34,7 +36,11 @@ def is_allowed_repository_file(relative: Path) -> bool:
     if relative.parts[0] == "release-notes":
         return len(relative.parts) == 2 and relative.suffix == ".md"
     if relative.parts[0] == ".github":
-        if relative.as_posix() in {".github/CODEOWNERS", ".github/pull_request_template.md"}:
+        if relative.as_posix() in {
+            ".github/CODEOWNERS",
+            ".github/dependabot.yml",
+            ".github/pull_request_template.md",
+        }:
             return True
         return (
             len(relative.parts) == 3

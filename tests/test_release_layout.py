@@ -63,6 +63,17 @@ class ReleaseLayoutTest(unittest.TestCase):
                 (root / relative).write_text("policy\n", encoding="utf-8")
             self.assertEqual(validate_release_layout(root), [])
 
+    def test_accepts_public_repository_security_and_license_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / ".github").mkdir()
+            (root / "release-evidence").mkdir()
+            (root / "release-notes").mkdir()
+            (root / "LICENSE").write_text("MIT\n", encoding="utf-8")
+            (root / "SECURITY.md").write_text("# Security\n", encoding="utf-8")
+            (root / ".github/dependabot.yml").write_text("version: 2\nupdates: []\n", encoding="utf-8")
+            self.assertEqual(validate_release_layout(root), [])
+
     def test_rejects_artifacts_source_and_external_skills(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

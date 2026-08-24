@@ -75,6 +75,7 @@ ai-dev-platform/
 目前需求、實作與驗證的對照見 [`docs/requirements-traceability.md`](docs/requirements-traceability.md)。
 第三方 skill 的穩定範圍、手動呼叫、觸發限制與重疊解決見 [`docs/skill-governance.md`](docs/skill-governance.md)。
 GitHub 推送邊界、PR 步驟與儲存庫保護設定見 [`docs/publishing-to-github.md`](docs/publishing-to-github.md)。
+GitHub Free 作為正式閘門、GitLab Free 作為第二遠端的零付費設定、CI 額度與 Public 隱私邊界，見 [`docs/free-public-hosting.md`](docs/free-public-hosting.md)。
 新增 collaborator／member、同步 GitHub／GitLab CODEOWNERS 與設定 PR／MR 保護規則，見 [`docs/collaborator-management.md`](docs/collaborator-management.md)。
 
 ## 快速開始
@@ -84,7 +85,7 @@ GitHub 推送邊界、PR 步驟與儲存庫保護設定見 [`docs/publishing-to-
 ```bash
 # 更新既有的 Work/ai-dev-platform。輸入三個平行目錄的共同父目錄。
 read -rp "Work absolute path: " WORK_ROOT
-PLATFORM_VERSION=1.3.0
+PLATFORM_VERSION=1.4.0
 cd "$WORK_ROOT"
 
 python3 -B ai-dev-platform/scripts/install_platform.py \
@@ -122,7 +123,9 @@ python3 -B ai-dev-platform/scripts/init_product.py \
 
 ## CI 驗證
 
-`.github/workflows/check.yml`、`.gitlab-ci.yml` 會在 push／PR 時執行 `scripts/check.sh`（儲存庫完整性）與 `scripts/commit-lint.sh`（commit message 格式）。檢查失敗時會阻擋 PR。產品儲存庫的調整方式見 [`docs/how-enforce-rules.md`](docs/how-enforce-rules.md)。
+`.github/workflows/check.yml` 會在 push／PR 時執行 `scripts/check.sh`（儲存庫完整性）與 `scripts/commit-lint.sh`（commit message 格式）；`.github/workflows/codeql.yml` 掃描平台自有的 Actions 與 Python 程式碼。`.gitlab-ci.yml` 在免費第二遠端模式只自動跑 MR，預設分支需明確啟用 `ENABLE_GITLAB_MAIN_CI`，避免重複消耗 GitLab compute minutes。檢查失敗時會阻擋 GitHub PR。產品儲存庫的調整方式見 [`docs/how-enforce-rules.md`](docs/how-enforce-rules.md)。
+
+維護者在受保護的 `main` 建立 `v*` annotated tag 後，`.github/workflows/release.yml` 會經 `release-build` environment 獨立核准，重新驗證來源、測試與 Android build，產生 ZIP、SPDX SBOM 及 GitHub/Sigstore SLSA attestation，並發布為 build candidate。完整零付費發行順序見 [`docs/free-public-hosting.md`](docs/free-public-hosting.md)。
 
 產品 CI 可選 GitHub Actions、GitLab CI、Jenkins 或內部系統；CI 轉接器（CI adapter）與模板見 [`docs/ci-adapters.md`](docs/ci-adapters.md)。初始化工具會建立基本驗證管線，並保留發行證據模板供產品補上成品平台、SBOM 與獨立核准設定。
 
@@ -149,4 +152,4 @@ python3 -B ai-dev-platform/scripts/init_product.py \
 
 ## 授權與貢獻
 
-本儲存庫的原創內容可依 `LICENSE` 複製與修改；`external/` 依各第三方授權辦理。貢獻前讀 [`CONTRIBUTING.md`](CONTRIBUTING.md)；弱點請依 [`SECURITY.md`](SECURITY.md) 使用 GitHub 私密通報。修改文件前先讀 [`governance/documentation.md`](governance/documentation.md) 與 [`docs/terminology.md`](docs/terminology.md)。
+本儲存庫的原創內容可依 `LICENSE` 複製與修改；此 MIT 授權不會取代 `external/` 各第三方內容自己的授權，完整證據見 [`external/README.md`](external/README.md) 與 `distribution/third-party-notices.json`。貢獻前讀 [`CONTRIBUTING.md`](CONTRIBUTING.md)；弱點請依 [`SECURITY.md`](SECURITY.md) 使用 GitHub 私密通報。修改文件前先讀 [`governance/documentation.md`](governance/documentation.md) 與 [`docs/terminology.md`](docs/terminology.md)。
