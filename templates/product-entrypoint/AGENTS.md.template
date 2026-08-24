@@ -1,8 +1,8 @@
 # AGENTS.md — <PRODUCT_NAME> 專案規範
 
 > 本專案固定讀取 `../ai-dev-platform/AGENTS.md` 的目前版本。開始任務前先讀取
-> 該文件，再讀本文件的產品專屬規則。產品儲存庫不得複製平台規則、`external/`
-> 或第三方 skill，也不建立平台 lock file。
+> 該文件，再讀本文件的產品專屬規則。產品儲存庫不得複製平台規則或工具副本，
+> 也不建立平台 lock file。
 
 ## 專案基本資訊
 
@@ -16,10 +16,6 @@
 見 `docs/domain-standards.md`（依 `../ai-dev-platform/docs/domain-adaptation.md`
 的清單整理來源；若清單沒有涵蓋這個領域，見該文件「遇到未列出的領域」一節）。
 這份文件是活文件，隨專案演進持續更新，不是 bootstrap 時寫一次就結束。
-
-## 外部框架（選用）
-
-若專案啟用 grill-with-docs、OpenSpec 或 superpowers，使用方式以 `../ai-dev-platform/docs/external-frameworks.md` 的目前內容為準。
 
 ## 專案專屬指令
 

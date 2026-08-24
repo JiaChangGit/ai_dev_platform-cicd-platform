@@ -2,266 +2,42 @@
 <html lang="zh-Hant-TW">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="light dark">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none';style-src 'unsafe-inline';img-src 'self' data:;connect-src 'none';font-src 'none';object-src 'none';frame-src 'none';base-uri 'none';form-action 'none'">
-  <title>AI Dev Platform：架構、導入與發行邊界</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>ai-dev-platform 離線手冊</title>
   <style>
-    :root{color-scheme:light dark;--bg:#f6f8fa;--panel:#fff;--soft:#edf3f7;--text:#17212b;--muted:#52616e;--line:#c9d4dd;--brand:#075985;--brand-bg:#e0f2fe;--ok:#166534;--ok-bg:#dcfce7;--warn:#92400e;--warn-bg:#fef3c7;--bad:#991b1b;--bad-bg:#fee2e2;--code:#111827;--code-text:#f9fafb;--radius:14px;--max:1160px}
-    @media(prefers-color-scheme:dark){:root{--bg:#0e1720;--panel:#17222c;--soft:#202e3a;--text:#edf3f7;--muted:#b9c5d0;--line:#3a4b59;--brand:#7dd3fc;--brand-bg:#0b3a51;--ok:#86efac;--ok-bg:#123d28;--warn:#fcd34d;--warn-bg:#493512;--bad:#fca5a5;--bad-bg:#4d1f24;--code:#080d13;--code-text:#e7eef5}}
-    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:5rem}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif;line-height:1.75}a{color:var(--brand)}code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}code{padding:.12em .35em;border-radius:5px;background:var(--soft);font-size:.92em;overflow-wrap:anywhere}pre{padding:1rem 1.15rem;border-radius:10px;background:var(--code);color:var(--code-text);overflow:auto;line-height:1.55}pre code{padding:0;background:none;color:inherit;overflow-wrap:normal}h1,h2,h3,h4{line-height:1.3;text-wrap:balance}h1{font-size:clamp(2.2rem,6vw,4rem);margin:.45rem 0 1rem}h2{font-size:clamp(1.55rem,3vw,2.2rem);margin:0 0 1rem}h3{font-size:1.25rem;margin:1.7rem 0 .6rem}p{margin:.6rem 0 1rem}li+li{margin-top:.35rem}
-    .skip{position:absolute;top:-5rem;left:1rem;z-index:20;padding:.6rem .9rem;background:var(--text);color:var(--bg)}.skip:focus{top:1rem}.hero{padding:clamp(3rem,8vw,7rem) max(1rem,calc((100% - var(--max))/2));border-bottom:1px solid var(--line);background:radial-gradient(circle at 15% 15%,color-mix(in srgb,var(--brand) 18%,transparent),transparent 30rem),var(--panel)}.eyebrow{color:var(--brand);font-weight:750;letter-spacing:.04em}.lead{max-width:850px;color:var(--muted);font-size:clamp(1.05rem,2vw,1.25rem)}.facts,.cards,.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:1.5rem}.fact,.card,.step{padding:1.15rem;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel)}.fact strong{display:block;color:var(--brand);font-size:1.08rem}.fact span,.muted{color:var(--muted)}
-    nav{position:sticky;top:0;z-index:10;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(10px)}nav ul{display:flex;gap:.35rem;max-width:var(--max);margin:auto;padding:.6rem 1rem;list-style:none;overflow-x:auto}nav a{display:block;padding:.3rem .55rem;border-radius:6px;color:var(--text);text-decoration:none;white-space:nowrap}nav a:hover,nav a:focus-visible{background:var(--soft)}main{width:min(var(--max),calc(100% - 2rem));margin:auto}section{padding:clamp(3rem,7vw,5.3rem) 0;border-bottom:1px solid var(--line)}.heading{display:flex;align-items:center;gap:.65rem}.icon{width:1.3em;height:1.3em;color:var(--brand);flex:none}.callout{margin:1.2rem 0;padding:1rem 1.15rem;border-left:5px solid var(--brand);background:var(--brand-bg)}.callout.warn{border-color:var(--warn);background:var(--warn-bg)}.callout.bad{border-color:var(--bad);background:var(--bad-bg)}.callout.ok{border-color:var(--ok);background:var(--ok-bg)}.callout>:last-child{margin-bottom:0}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;margin:1rem 0;background:var(--panel)}th,td{padding:.78rem .85rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:var(--soft)}td:first-child{font-weight:650}
-    .diagram{margin:1.3rem 0;padding:1rem;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);overflow-x:auto}.diagram svg{display:block;width:100%;min-width:760px;height:auto}.node{fill:var(--soft);stroke:var(--line);stroke-width:2}.main-node{fill:var(--brand-bg);stroke:var(--brand);stroke-width:2}.ok-node{fill:var(--ok-bg);stroke:var(--ok);stroke-width:2}.warn-node{fill:var(--warn-bg);stroke:var(--warn);stroke-width:2}.line{fill:none;stroke:var(--muted);stroke-width:2}.dash{stroke-dasharray:7 5}.message{fill:none;stroke:var(--brand);stroke-width:2}.lane{stroke:var(--line);stroke-width:1.5;stroke-dasharray:5 5}.label{fill:var(--text);font:650 15px system-ui,sans-serif}.small{fill:var(--muted);font:13px system-ui,sans-serif}.tree{margin:1.2rem 0;padding:.8rem 1rem;border-left:4px solid var(--brand);background:var(--panel)}.tree div{display:grid;grid-template-columns:minmax(15rem,.9fr) 2fr;gap:1rem;padding:.6rem;border-bottom:1px solid var(--line)}.tree div:last-child{border:0}.tree b{font-family:ui-monospace,monospace}.step{position:relative;padding-top:3.2rem}.n{position:absolute;top:1rem;left:1rem;display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:50%;background:var(--brand);color:var(--panel);font-weight:800}.tag{display:inline-block;padding:.12rem .48rem;border-radius:99px;background:var(--soft);color:var(--muted);font-size:.82rem;font-weight:750}.tag.keep{background:var(--ok-bg);color:var(--ok)}.tag.req{background:var(--bad-bg);color:var(--bad)}.tag.opt{background:var(--brand-bg);color:var(--brand)}details{margin:.7rem 0;border:1px solid var(--line);border-radius:10px;background:var(--panel)}summary{padding:.75rem 1rem;cursor:pointer;font-weight:700}details>div{padding:0 1rem 1rem}footer{padding:2.5rem max(1rem,calc((100% - var(--max))/2));border-top:1px solid var(--line);background:var(--panel);color:var(--muted)}
-    @media(max-width:850px){.facts,.cards,.steps{grid-template-columns:1fr}.tree div{grid-template-columns:1fr;gap:.2rem}nav{position:static}html{scroll-padding-top:1rem}}@media print{nav,.skip{display:none}body{font-size:11pt}.hero,section{padding:1.2rem 0}.fact,.card,.step,.diagram{break-inside:avoid}pre{white-space:pre-wrap}}
+    :root{color-scheme:light dark;font-family:system-ui,sans-serif;line-height:1.65}body{max-width:980px;margin:auto;padding:2rem 1.2rem 5rem}nav{display:flex;flex-wrap:wrap;gap:.7rem;padding:1rem 0;border-block:1px solid #8886}nav a{color:inherit}section{padding:2rem 0;border-bottom:1px solid #8885}table{border-collapse:collapse;width:100%}th,td{border:1px solid #8886;padding:.6rem;text-align:left;vertical-align:top}pre,code{font-family:ui-monospace,monospace}pre{overflow:auto;padding:1rem;background:#8882}.warn{border-left:.35rem solid #b66a00;padding:.8rem 1rem;background:#b66a0018}.ok{border-left:.35rem solid #16733a;padding:.8rem 1rem;background:#16733a18}
   </style>
 </head>
 <body>
-  <svg aria-hidden="true" width="0" height="0" style="position:absolute"><symbol id="target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/></symbol><symbol id="box" viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Zm0 0v10l8 4 8-4V7M12 11v10" fill="none" stroke="currentColor" stroke-width="2"/></symbol><symbol id="flow" viewBox="0 0 24 24"><circle cx="5" cy="5" r="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="19" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="5" cy="19" r="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 5h4a3 3 0 0 1 3 3v1M7 19h4a3 3 0 0 0 3-3v-1h3" fill="none" stroke="currentColor" stroke-width="2"/></symbol><symbol id="tool" viewBox="0 0 24 24"><path d="m14 6 4-4 4 4-4 4M18 2v8M3 21l7-7M7 10l7 7-4 4-7-7 4-4Z" fill="none" stroke="currentColor" stroke-width="2"/></symbol><symbol id="shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.4 8 8 9 4.6-1 8-4 8-9V6l-8-3Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="m8.5 12 2.2 2.2 4.8-5" fill="none" stroke="currentColor" stroke-width="2"/></symbol></svg>
-  <a class="skip" href="#main">跳到主要內容</a>
-  <header class="hero">
-    <p class="eyebrow">平台版本 1.4.0 · 靜態單檔 · 離線可讀</p>
-    <h1>AI Dev Platform<br>架構、導入與發行邊界</h1>
-    <p class="lead">這套平台放在多個產品旁邊共用。它不保存產品程式碼，也不代替 CI/CD；實際提供規則、工作流程、模板、離線第三方 skill、初始化工具與發行驗證程式。</p>
-    <div class="callout warn"><strong>內容依據：</strong>本頁以 <code>scripts/*.py</code>、<code>tests/</code>、<code>distribution/*.json</code>、CI workflow 與產品入口模板為準。若敘述與程式行為不同，必須以測試釐清並同步修正。</div>
-    <div class="facts"><div class="fact"><strong>1 個共用唯讀平台</strong><span>產品固定讀取相鄰 <code>ai-dev-platform/</code> 的目前版本。</span></div><div class="fact"><strong>每項產品 2 個 Git repo</strong><span>開發 repo 保存原始碼；release repo 只保存發行中繼資料。</span></div><div class="fact"><strong>4 種 CI 入口</strong><span>GitHub Actions、GitLab CI、Jenkins、internal CI。</span></div></div>
+  <header>
+    <p>平台版本 1.5.0 · 靜態單檔 · 無外部資源</p>
+    <h1>ai-dev-platform 離線手冊</h1>
+    <p>這套平台把開發規則、產品原始碼、建置成品與發行核准分開保存。它不代替產品規格、CI runner 或人工審查。</p>
   </header>
-  <nav aria-label="本頁目錄"><ul><li><a href="#purpose">目的</a></li><li><a href="#architecture">架構</a></li><li><a href="#flow-section">資料流</a></li><li><a href="#setup">建立步驟</a></li><li><a href="#cases">使用案例</a></li><li><a href="#boundaries">邊界</a></li><li><a href="#cleanup">移除紀錄</a></li><li><a href="#release">發行</a></li><li><a href="#github">GitHub</a></li><li><a href="#troubleshooting">常見失誤</a></li><li><a href="#verify">驗證</a></li></ul></nav>
+  <nav aria-label="本頁目錄"><a href="#purpose">目的</a><a href="#architecture">架構</a><a href="#flow-section">資料流</a><a href="#setup">建立</a><a href="#cases">案例</a><a href="#boundaries">邊界</a><a href="#release">發行</a><a href="#verify">驗證</a></nav>
   <main id="main">
-    <section id="purpose">
-      <h2 class="heading"><svg class="icon"><use href="#target"/></svg>1. 專案目的</h2>
-      <p>平台把跨產品共用規則，與產品自己的程式碼、CI、領域規範及發行紀錄分開。Android App、SSD PCIe 韌體或其他領域可共用任務分類、審查與發行證據格式，但仍使用各自核准的工具鏈。</p>
-      <div class="callout"><strong>第一次操作：</strong>先依 <a href="getting-started.md">新手操作手冊</a> 完成安裝、初始化與驗證；本頁用來快速查閱架構、邊界與阻擋條件。</div>
-      <div class="table-wrap"><table><thead><tr><th>程式實作能力</th><th>實際行為</th><th>未提供的能力</th></tr></thead><tbody>
-        <tr><td>平台發行包（platform package）</td><td>依 <code>distribution/manifest.json</code> 建立單一頂層 ZIP，記錄逐檔 SHA-256、大小與權限。</td><td>不把維護 repo 的 <code>.git</code> 放進下載包。</td></tr>
-        <tr><td>原子安裝（atomic install）</td><td>先驗證 ZIP 與 sidecar SHA-256，在暫存目錄解壓並執行自我檢查，成功後才替換舊平台。</td><td>目標含 <code>.git</code> 時拒絕替換。</td></tr>
-        <tr><td>產品初始化（bootstrap）</td><td>建立 <code>&lt;product&gt;-cicd-platform</code> 與 <code>&lt;product&gt;-release</code>，預設各自執行 <code>git init</code>。</td><td>不覆寫既有同名目錄。</td></tr>
-        <tr><td>CI 轉接</td><td>產生四種 CI 的 build／test／lint 骨架與 release evidence 轉接模板。</td><td>不提供產品工具鏈、runner 帳號、成品空間或憑證。</td></tr>
-        <tr><td>發行驗證</td><td>檢查版號、來源 commit、必要 checks、hash、簽章、SBOM、SLSA、獨立核准與 tag。</td><td>不把實際成品、私鑰、SBOM 或簽章存進 release repo。</td></tr>
-      </tbody></table></div>
-      <div class="callout"><strong>工具入口的真實範圍：</strong>初始化程式產生 <code>AGENTS.md</code>、<code>CLAUDE.md</code>、<code>opencode.json</code>，對應 Codex、Claude Code、opencode。其他工具若不讀這些格式，必須另做轉接。</div>
-    </section>
-
-    <section id="architecture">
-      <h2 class="heading"><svg class="icon"><use href="#box"/></svg>2. 架構與物件關係</h2>
-      <p>工作區採平行目錄，不用 Git submodule 或 subtree 把平台複製到產品 repo。產品 metadata 固定為 <code>platform: ../ai-dev-platform</code> 與 <code>platformVersionPolicy: always-current</code>。</p>
-      <div class="diagram"><svg viewBox="0 0 1080 430" role="img" aria-labelledby="arch-t arch-d"><title id="arch-t">平台、成品平台與產品的架構</title><desc id="arch-d">維護儲存庫建立平台 ZIP，成品平台保存 ZIP，唯讀平台供產品讀取，產品開發 repo 只把發行中繼資料交給 release repo。</desc><defs><marker id="aa" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0v6l9-3Z" fill="var(--muted)"/></marker></defs>
-        <rect class="main-node" x="35" y="45" width="285" height="105" rx="14"/><text class="label" x="177" y="78" text-anchor="middle">ai_dev_platform-cicd-platform</text><text class="small" x="177" y="106" text-anchor="middle">維護 repo：Git、測試、同步、封裝</text>
-        <rect class="node" x="400" y="45" width="280" height="105" rx="14"/><text class="label" x="540" y="78" text-anchor="middle">CI／成品平台</text><text class="small" x="540" y="106" text-anchor="middle">ZIP、artifact、signature、SBOM、SLSA</text>
-        <rect class="ok-node" x="760" y="45" width="280" height="105" rx="14"/><text class="label" x="900" y="78" text-anchor="middle">ai-dev-platform</text><text class="small" x="900" y="106" text-anchor="middle">唯讀、無 .git、所有產品讀目前版本</text>
-        <rect class="main-node" x="190" y="280" width="300" height="105" rx="14"/><text class="label" x="340" y="313" text-anchor="middle">&lt;product&gt;-cicd-platform</text><text class="small" x="340" y="341" text-anchor="middle">產品原始碼、測試、CI/CD、Git 歷史</text>
-        <rect class="warn-node" x="590" y="280" width="300" height="105" rx="14"/><text class="label" x="740" y="313" text-anchor="middle">&lt;product&gt;-release</text><text class="small" x="740" y="341" text-anchor="middle">Note、evidence、tag、URI／SHA-256</text>
-        <path class="line" d="M320 98h70" marker-end="url(#aa)"/><text class="small" x="355" y="86" text-anchor="middle">package</text><path class="line" d="M680 98h70" marker-end="url(#aa)"/><text class="small" x="715" y="86" text-anchor="middle">install</text><path class="line dash" d="M845 150C790 220 510 205 410 273" marker-end="url(#aa)"/><text class="small" x="665" y="210" text-anchor="middle">規則、workflow、skill（唯讀）</text><path class="line" d="M490 332h90" marker-end="url(#aa)"/><text class="small" x="535" y="320" text-anchor="middle">evidence</text>
-      </svg></div>
-      <div class="tree"><div><b>Work/ai-dev-platform/</b><span>已驗證 ZIP 的安裝結果；沒有 <code>.git</code>，預設檔案唯讀。</span></div><div><b>Work/product-cicd-platform/</b><span>產品原始碼、測試、CI/CD、架構與領域規範；獨立 Git repo。</span></div><div><b>Work/product-release/</b><span>同產品專屬的發行中繼資料；另一個獨立 Git repo。</span></div></div>
-      <div class="callout warn"><code>ai_dev_platform-cicd-platform/</code> 只供平台維護、第三方同步與產生下一版 ZIP。一般產品工作區只需要已安裝的 <code>ai-dev-platform/</code>。</div>
-    </section>
-
-    <section id="flow-section">
-      <h2 class="heading"><svg class="icon"><use href="#flow"/></svg>3. 資料流與時序</h2>
-      <div class="diagram"><svg viewBox="0 0 1080 315" role="img" aria-labelledby="flow-t flow-d"><title id="flow-t">從產品開發到發布的資料流</title><desc id="flow-d">產品程式碼進入 CI，CI 執行五項檢查，成品留在成品平台，release repo 只收到證據與參照。</desc><defs><marker id="af" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0v6l9-3Z" fill="var(--muted)"/></marker></defs>
-        <rect class="main-node" x="30" y="95" width="210" height="105" rx="14"/><text class="label" x="135" y="128" text-anchor="middle">產品開發 repo</text><text class="small" x="135" y="158" text-anchor="middle">source、test、完整 commit SHA</text>
-        <rect class="node" x="290" y="50" width="240" height="195" rx="14"/><text class="label" x="410" y="84" text-anchor="middle">CI 驗證</text><text class="small" x="410" y="116" text-anchor="middle">build · test · lint</text><text class="small" x="410" y="143" text-anchor="middle">security · package</text><text class="small" x="410" y="178" text-anchor="middle">簽章、SBOM、SLSA</text><text class="small" x="410" y="207" text-anchor="middle">release evidence</text>
-        <rect class="ok-node" x="585" y="35" width="225" height="105" rx="14"/><text class="label" x="697" y="70" text-anchor="middle">成品平台</text><text class="small" x="697" y="100" text-anchor="middle">binary／APK／ELF 與供應鏈檔案</text>
-        <rect class="warn-node" x="585" y="180" width="225" height="105" rx="14"/><text class="label" x="697" y="215" text-anchor="middle">產品 release repo</text><text class="small" x="697" y="245" text-anchor="middle">JSON、Note、tag、URI／hash</text>
-        <rect class="ok-node" x="875" y="105" width="165" height="90" rx="14"/><text class="label" x="957" y="140" text-anchor="middle">發布</text><text class="small" x="957" y="168" text-anchor="middle">全部關卡通過</text>
-        <path class="line" d="M240 147h40" marker-end="url(#af)"/><path class="line" d="M530 100h45" marker-end="url(#af)"/><path class="line" d="M530 200c25 10 25 35 45 38" marker-end="url(#af)"/><path class="line" d="M810 88c35 0 35 42 55 51" marker-end="url(#af)"/><path class="line" d="M810 235c35 0 35-52 55-64" marker-end="url(#af)"/>
-      </svg></div>
-      <h3>AI 開發工具使用時序（sequence）</h3>
-      <div class="diagram"><svg viewBox="0 0 1080 490" role="img" aria-labelledby="seq-t seq-d"><title id="seq-t">開發任務時序圖</title><desc id="seq-d">工具先讀平台與產品規則，再修改產品，執行驗證、建立 PR 並交由 CI。</desc><defs><marker id="as" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0v6l9-3Z" fill="var(--brand)"/></marker></defs>
-        <text class="label" x="80" y="30" text-anchor="middle">使用者</text><text class="label" x="285" y="30" text-anchor="middle">開發工具</text><text class="label" x="505" y="30" text-anchor="middle">唯讀平台</text><text class="label" x="735" y="30" text-anchor="middle">產品 repo</text><text class="label" x="970" y="30" text-anchor="middle">CI</text><path class="lane" d="M80 45v420M285 45v420M505 45v420M735 45v420M970 45v420"/>
-        <path class="message" d="M80 75h195" marker-end="url(#as)"/><text class="small" x="178" y="67" text-anchor="middle">任務與授權</text><path class="message" d="M285 125h210" marker-end="url(#as)"/><text class="small" x="390" y="117" text-anchor="middle">讀 workflow／governance／skill 路由</text><path class="message" d="M285 175h440" marker-end="url(#as)"/><text class="small" x="505" y="167" text-anchor="middle">讀產品規則、程式碼、測試</text><path class="message" d="M285 225h440" marker-end="url(#as)"/><text class="small" x="505" y="217" text-anchor="middle">修改程式碼與測試</text><path class="message" d="M735 275H295" marker-end="url(#as)"/><text class="small" x="515" y="267" text-anchor="middle">本機 build／test／lint 結果</text><path class="message" d="M285 325h440" marker-end="url(#as)"/><text class="small" x="505" y="317" text-anchor="middle">commit／PR</text><path class="message" d="M735 375h225" marker-end="url(#as)"/><text class="small" x="847" y="367" text-anchor="middle">觸發 CI</text><path class="message" d="M970 425H745" marker-end="url(#as)"/><text class="small" x="857" y="417" text-anchor="middle">checks、URI、hash</text><path class="message" d="M285 460H90" marker-end="url(#as)"/><text class="small" x="188" y="452" text-anchor="middle">結果與待決事項</text>
-      </svg></div>
-    </section>
-
-    <section id="setup">
-      <h2 class="heading"><svg class="icon"><use href="#tool"/></svg>4. 建立與導入步驟</h2>
-      <h3>A. 建立唯讀平台</h3>
-      <div class="steps"><article class="step"><span class="n">1</span><h4>驗證維護來源</h4><p>開發中可用 <code>--allow-dirty</code> 診斷；正式包必須對應乾淨 commit。</p></article><article class="step"><span class="n">2</span><h4>建立與驗證 ZIP</h4><p>封裝器記錄逐檔 hash、大小、mode，驗證後才發布正式檔名。</p></article><article class="step"><span class="n">3</span><h4>安裝到 Work</h4><p>先在暫存目錄驗證與自我檢查，再原子替換並設為唯讀。</p></article></div>
-      <pre><code># 平台維護 repo；輸入三個平行目錄的共同父目錄
-read -rp "Work absolute path: " WORK_ROOT
-PLATFORM_VERSION=1.4.0
-bash scripts/check.sh
+    <section id="purpose"><h2>目的</h2><p>依任務只讀必要 workflow、governance 與 template，減少重複上下文；合併與發布仍由測試、PR、branch rule 與 environment reviewer 強制。</p></section>
+    <section id="architecture"><h2>架構</h2><table><thead><tr><th>位置</th><th>內容</th></tr></thead><tbody><tr><td>ai-dev-platform</td><td>唯讀規則與工具，不含第三方來源副本。</td></tr><tr><td>product-cicd-platform</td><td>產品原始碼、測試與 CI。</td></tr><tr><td>product-release</td><td>Release Note、evidence 與 tag；沒有原始碼或建置成品。</td></tr><tr><td>CI／成品平台</td><td>ZIP、APK、ELF、SBOM 與 attestation。</td></tr></tbody></table></section>
+    <section id="flow-section"><h2>資料流</h2><p>需求 → source PR → build／test／lint／security／package → candidate → release evidence PR → 同版 tag → environment 核准 → 正式 release。</p><p class="warn">Attestation 連結 workflow、repository 與 commit，不代表成品沒有弱點，也不取代產品原生簽章。</p></section>
+    <section id="setup"><h2>建立產品</h2><pre><code>cd /absolute/path/to/Work/ai-dev-platform
+python3 -B scripts/init_product.py \
+  --name sample-product \
+  --domain generic \
+  --ci github-actions \
+  --dry-run</code></pre><p>確認路徑後移除 <code>--dry-run</code>。不修改唯讀平台；產品入口固定讀取平行的穩定包。</p></section>
+    <section id="cases"><h2>案例</h2><ul><li>SSD PCIe 韌體：C11 trace ring buffer 與 host test。</li><li>Android App：AGP 9.2.0、內建 Kotlin、狀態畫面與 unit test。</li><li>規格筆記：虛構規格、追溯矩陣、離線 HTML 與識別字驗證。</li></ul></section>
+    <section id="boundaries"><h2>安全與隱私邊界</h2><p>不提交 Token、私鑰、cookie、客戶資料、內部網址或未獲准公開的規格。個人 Gmail 與 hostname 是否保留由 repository owner 決定；憑證不適用此例外。</p></section>
+    <section id="cleanup"><h2>精簡原則</h2><p>平台不內含 Cookbook、第三方 skills、模型 registry 或同步腳本。歷史 blob 仍在 Git；是否重寫歷史另案處理。</p></section>
+    <section id="release"><h2>發行</h2><p><code>scripts/package_release.py</code> 建 ZIP；<code>scripts/install_platform.py</code> 驗證並安裝；<code>scripts/verify_release_layout.py</code> 檢查 release 邊界；<code>scripts/verify_release_evidence.py</code> 驗證 JSON 契約、必要 checks、SHA-256 格式；<code>scripts/verify_release_readiness.py</code> 驗證實體 artifact／signature／SBOM／provenance。這些腳本不會連線查詢 CI run，發布者仍須到平台確認。</p></section>
+    <section id="github"><h2>GitHub 與 GitLab</h2><p>GitHub 是 canonical source。GitLab Free 作手動鏡像；不宣稱已完成自動 pull mirror 或免費強制 approval rule。</p></section>
+    <section id="troubleshooting"><h2>常見失敗</h2><table><tbody><tr><th>封裝拒絕 dirty worktree</th><td>先 commit 並經 PR 合併；<code>--allow-dirty</code> 只供診斷。</td></tr><tr><th>release readiness 失敗</th><td>依錯誤補齊真實成品、hash、證據或 tag；不要略過。</td></tr><tr><th>GitLab 與 GitHub 分岔</th><td>GitLab 鏡像不直接修改，只從 GitHub main 與 tags 推送。</td></tr></tbody></table></section>
+    <section id="verify"><h2>驗證</h2><pre><code>bash scripts/check.sh
 python3 -B -m unittest discover -s tests -v
-python3 -B scripts/audit_skills.py
+python3 -B scripts/audit_workspace.py /absolute/path/to/Work
 python3 -B scripts/pre_push_audit.py
-python3 -B scripts/package_release.py --source-ref "$(git rev-parse HEAD)"
-python3 -B scripts/verify_package.py "dist/ai-dev-platform-${PLATFORM_VERSION}.zip"
-
-# 先預覽再安裝
-python3 -B scripts/install_platform.py "dist/ai-dev-platform-${PLATFORM_VERSION}.zip" \
-  --checksum "dist/ai-dev-platform-${PLATFORM_VERSION}.zip.sha256" \
-  --work-root "$WORK_ROOT" --dry-run
-python3 -B scripts/install_platform.py "dist/ai-dev-platform-${PLATFORM_VERSION}.zip" \
-  --checksum "dist/ai-dev-platform-${PLATFORM_VERSION}.zip.sha256" \
-  --work-root "$WORK_ROOT"</code></pre>
-	      <div class="callout"><strong>CI 模式：</strong>GitHub Actions、GitLab CI 或其他 runner 不建立 commit 時，使用 <code>python3 -B scripts/pre_push_audit.py --ci</code>。這只略過 runner 的 <code>user.name</code>／<code>user.email</code>，敏感資料、remote、忽略規則與建置成品仍是阻擋條件。</div>
-	      <div class="callout bad">不要在 <code>ai-dev-platform/</code> 執行 <code>git init</code>。安裝器發現目標含 <code>.git</code> 會停止，避免把維護 repo 當成可替換的下載包。</div>
-      <h3>B. 建立 Android 或 SSD 產品</h3>
-      <pre><code>cd "$WORK_ROOT"
-
-python3 -B ai-dev-platform/scripts/init_product.py \
-  --name sample-android --display-name "Sample Android" \
-  --domain android --ci github-actions --with-example
-
-python3 -B ai-dev-platform/scripts/init_product.py \
-  --name sample-ssd-fw --display-name "Sample SSD Firmware" \
-  --domain ssd-pcie-fw --ci gitlab-ci --with-example</code></pre>
-      <h3>C. 建立通用領域產品</h3>
-      <p><code>generic</code> 沒有預設工具鏈；下列產品資訊與命令全部必填。平台會驗證為非空單行字串與安全相對 artifact path，但不會猜測命令是否符合未知框架。</p>
-      <pre><code>python3 -B ai-dev-platform/scripts/init_product.py \
-  --name sample-service --display-name "Sample Service" \
-  --domain generic --ci jenkins \
-  --product-type "Web Service" --target-platform "Linux container" \
-  --language-framework "Go toolchain" \
-  --build-command "go build ./..." --test-command "go test ./..." \
-  --lint-command "go vet ./..." --package-command "make package" \
-  --artifact-path "dist/sample-service.tar.gz"</code></pre>
-      <h3>D. 初始化後必須補齊</h3>
-      <div class="table-wrap"><table><thead><tr><th>項目</th><th>狀態</th><th>設定內容</th></tr></thead><tbody>
-        <tr><td><code>.ai/product.json</code></td><td><span class="tag keep">自動建立</span></td><td>確認產品名稱、領域、CI、release 儲存庫與 <code>always-current</code> 平台政策正確。</td></tr>
-        <tr><td><code>docs/domain-standards.md</code></td><td><span class="tag req">必要</span></td><td>補產品核准的一手規格、SDK、工具鏈版本與限制。</td></tr>
-        <tr><td>CI runner／成品平台</td><td><span class="tag req">必要</span></td><td>設定 runner、不可變成品 URI、簽章金鑰管理、SBOM 與 SLSA。</td></tr>
-        <tr><td>CODEOWNERS／獨立核准</td><td><span class="tag req">必要</span></td><td>加入真實協作者；PR 作者不能自我核准，publisher 不能等於 release approver。</td></tr>
-        <tr><td>外部框架</td><td><span class="tag opt">選用</span></td><td>OpenSpec、grill-with-docs、superpowers 不是核心依賴，需要時再啟用。</td></tr>
-      </tbody></table></div>
-      <div class="callout warn"><strong>模型設定邊界：</strong><code>registry/providers.yaml</code> 位於共用唯讀平台，只提供角色與模型選型範例，不會設定 Codex、Claude Code 或 opencode。實際模型、登入與 Token 由各工具或組織核准的設定管理，不修改唯讀平台。</div>
-    </section>
-    <section id="cases">
-      <h2 class="heading"><svg class="icon"><use href="#box"/></svg>5. 使用案例</h2>
-      <div class="cards">
-        <article class="card"><h3>Android App</h3><ul><li>Build：<code>gradle --no-daemon :app:assembleDebug</code></li><li>Test：<code>gradle --no-daemon :app:testDebugUnitTest</code></li><li>Lint：<code>gradle --no-daemon :app:lintDebug</code></li><li>Package：<code>gradle --no-daemon :app:assembleRelease</code></li></ul><p>最小範例含 AndroidManifest、入口 Activity 與 JUnit 測試。GitHub workflow 另設定 JDK 17 與 Gradle 9.4.1。</p></article>
-        <article class="card"><h3>SSD PCIe 韌體</h3><ul><li>Build：<code>make all</code></li><li>Test：<code>make test</code></li><li>Lint：<code>make lint</code></li><li>Package：<code>make package</code></li></ul><p>最小範例使用 C11 與 Make；測試會實際建立非空 ELF。它只驗證平台能承載韌體流程，不代表真實控制器、NVMe 或 PCIe 行為。</p></article>
-        <article class="card"><h3>其他產品</h3><p>用 <code>generic</code> 建立 web service、kernel module、CLI 或其他專案時，必須明確提供 build／test／lint／package 命令與安全相對 artifact path。</p><p>平台不替未知領域選語言、套件管理器、編譯器或安全規範。</p></article>
-      </div>
-      <h3>同一產品可選的 CI 入口</h3>
-      <div class="table-wrap"><table><thead><tr><th><code>--ci</code></th><th>產品 repo 產生檔案</th><th>發行轉接模板</th></tr></thead><tbody>
-        <tr><td><code>github-actions</code></td><td><code>.github/workflows/check.yml</code></td><td><code>.ci/release/release-evidence.yml.template</code></td></tr>
-        <tr><td><code>gitlab-ci</code></td><td><code>.gitlab-ci.yml</code></td><td><code>.ci/release/release-evidence.gitlab-ci.yml.template</code></td></tr>
-        <tr><td><code>jenkins</code></td><td><code>Jenkinsfile</code></td><td><code>.ci/release/Jenkinsfile.template</code></td></tr>
-        <tr><td><code>internal-ci</code></td><td><code>.ci/internal-ci.json</code></td><td><code>.ci/release/release-evidence.contract.json</code></td></tr>
-      </tbody></table></div>
-    </section>
-
-    <section id="boundaries">
-      <h2 class="heading"><svg class="icon"><use href="#shield"/></svg>6. 專案邊界</h2>
-      <div class="table-wrap"><table><thead><tr><th>內容</th><th>平台維護 repo</th><th>唯讀平台</th><th>產品開發 repo</th><th>產品 release repo</th></tr></thead><tbody>
-        <tr><td>平台 Git 歷史</td><td>保留</td><td>禁止</td><td>不得複製</td><td>禁止</td></tr>
-        <tr><td>產品原始碼／測試</td><td>僅跨領域最小範例</td><td>含驗收範例</td><td>保留</td><td>禁止</td></tr>
-        <tr><td>第三方 skill</td><td>維護來源</td><td>預設包選定的離線內容</td><td>禁止複製</td><td>禁止</td></tr>
-        <tr><td>建置成品</td><td>本機 <code>dist/</code>，不進 Git</td><td>不保存產品成品</td><td>本機／CI 產生，不進 Git</td><td>禁止，只留 URI／hash</td></tr>
-        <tr><td>Release Note／evidence</td><td>模板與 schema</td><td>模板與驗證工具</td><td>產生與交接</td><td>保留</td></tr>
-        <tr><td>產品領域規範</td><td>不放產品私有內容</td><td>只提供通用方法</td><td><code>docs/domain-standards.md</code></td><td>禁止</td></tr>
-        <tr><td>對話交接紀錄</td><td><code>.ai/handoffs/</code> 不進 Git</td><td>不應存在</td><td>可暫存但不進 Git</td><td>禁止</td></tr>
-      </tbody></table></div>
-      <h3>Release repo 採允許清單（allowlist）</h3>
-      <p><code>verify_release_layout.py</code> 只接受：</p>
-      <ul><li>必要管理檔：<code>README.md</code>、<code>AGENTS.md</code>、<code>CLAUDE.md</code>、<code>opencode.json</code>、<code>.gitignore</code>、CODEOWNERS 與允許的 CI 設定。</li><li><code>release-evidence/&lt;version&gt;.json</code>。</li><li><code>release-notes/&lt;version&gt;.md</code>。</li><li>Git tag <code>v&lt;version&gt;</code>。</li></ul>
-      <p>原始碼、<code>external/</code>、APK、AAB、ELF、韌體映像、ZIP、SBOM 實體檔與簽章實體檔都不能進入 release repo。</p>
-    </section>
-
-    <section id="cleanup">
-      <h2 class="heading"><svg class="icon"><use href="#tool"/></svg>7. 移除 DEV 專案的開發紀錄</h2>
-      <div class="callout bad"><strong>先分清楚移除位置。</strong>平台維護 repo 與產品開發 repo 需要 Git commit 來驗證 <code>sourceRef</code>、版本與來源關係，不能為了讓下載包乾淨就刪除它們的 <code>.git</code>。正確做法是由封裝器建立不含 Git 的 ZIP，再安裝成唯讀平台。</div>
-      <div class="table-wrap"><table><thead><tr><th>項目</th><th>處理</th><th>程式上的理由</th></tr></thead><tbody>
-        <tr><td>維護 repo 的 <code>.git/</code></td><td><span class="tag keep">保留</span></td><td>正式 package 要對應不可變 commit；readiness 也會核對來源 commit／ref。</td></tr>
-	        <tr><td>產品開發 repo 的 <code>.git/</code></td><td><span class="tag keep">保留</span></td><td>產品原始碼、審查與 CI 的來源。</td></tr>
-	        <tr><td>發行 repo 的 <code>.git/</code></td><td><span class="tag keep">獨立重建</span></td><td>只連接同名的空白遠端；若遠端已有歷史就重新 clone，不得 force push。</td></tr>
-        <tr><td>下載 ZIP 內的 <code>.git/</code></td><td><span class="tag req">必須排除</span></td><td>distribution manifest 排除，package verifier 也拒絕 Git 內部路徑。</td></tr>
-        <tr><td><code>.ai/handoffs/</code></td><td><span class="tag req">不進 Git</span></td><td>可能含任務上下文、問題細節、檔名或內部資訊。</td></tr>
-        <tr><td><code>dist/</code>、<code>build/</code>、<code>__pycache__/</code>、<code>.gradle/</code></td><td><span class="tag req">不進 Git</span></td><td>可重建的本機輸出，由 <code>.gitignore</code> 與 package exclude 處理。</td></tr>
-        <tr><td><code>local.properties</code>、IDE／個人工具設定</td><td><span class="tag req">不進 Git</span></td><td>可能含本機 SDK 路徑或個人環境資訊。</td></tr>
-        <tr><td><code>.env</code>、私鑰、憑證、Token</td><td><span class="tag req">不得提交</span></td><td>應由 CI secret store 或核准的金鑰系統提供。</td></tr>
-        <tr><td><code>*.backup-*</code>、<code>*.legacy-*</code></td><td><span class="tag opt">驗收後刪除</span></td><td>更新失敗時可復原；確認新平台與 release layout 通過後才移除。</td></tr>
-        <tr><td>Release Note、evidence、tag、URI／SHA-256</td><td><span class="tag keep">保留</span></td><td>這些是稽核紀錄，不是開發暫存。</td></tr>
-      </tbody></table></div>
-      <h3>推送前先做只讀檢查</h3>
-      <pre><code>git status --short --ignored
-git diff --check
-git ls-files
-python3 -B scripts/pre_push_audit.py
-python3 -B scripts/package_release.py --dry-run --allow-dirty</code></pre>
-      <h3>若舊 commit 已含敏感資料</h3>
-      <ol><li>先撤銷或輪替憑證；只刪目前檔案不能使舊 commit 安全。</li><li>確認受影響 repo、branch、tag、fork 與 CI log。</li><li>取得 repo 擁有者同意後，另案規劃 Git 歷史重寫與 force push；平台沒有自動執行這項破壞性操作。</li><li>通知協作者重新 clone 或依團隊程序修復本機分支。</li></ol>
-      <p>公開維護 repo 的 commit 本來就是開發紀錄。若一般使用者應拿到不含歷史的版本，應發布經 <code>verify_package.py</code> 通過的 ZIP，不是讓使用者 clone 維護 repo。</p>
-    </section>
-
-    <section id="release">
-      <h2 class="heading"><svg class="icon"><use href="#shield"/></svg>8. 發行流程與阻擋條件</h2>
-      <div class="diagram"><svg viewBox="0 0 1080 230" role="img" aria-labelledby="rel-t rel-d"><title id="rel-t">發行關卡流程</title><desc id="rel-d">來源 commit 通過五項檢查，再核對成品、供應鏈證據、獨立核准與 tag，全部通過才發布。</desc><defs><marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0v6l9-3Z" fill="var(--muted)"/></marker></defs>
-        <rect class="node" x="20" y="70" width="160" height="90" rx="14"/><text class="label" x="100" y="105" text-anchor="middle">來源 commit</text><text class="small" x="100" y="132" text-anchor="middle">完整 SHA／ref</text><rect class="main-node" x="220" y="45" width="190" height="140" rx="14"/><text class="label" x="315" y="78" text-anchor="middle">必要 CI checks</text><text class="small" x="315" y="108" text-anchor="middle">build · test · lint</text><text class="small" x="315" y="134" text-anchor="middle">security · package</text><text class="small" x="315" y="160" text-anchor="middle">缺一即停止</text><rect class="node" x="450" y="45" width="190" height="140" rx="14"/><text class="label" x="545" y="78" text-anchor="middle">供應鏈證據</text><text class="small" x="545" y="108" text-anchor="middle">artifact／signature</text><text class="small" x="545" y="134" text-anchor="middle">SBOM／SLSA v1</text><text class="small" x="545" y="160" text-anchor="middle">SHA-256 一致</text><rect class="warn-node" x="680" y="45" width="190" height="140" rx="14"/><text class="label" x="775" y="78" text-anchor="middle">Release repo</text><text class="small" x="775" y="108" text-anchor="middle">layout clean</text><text class="small" x="775" y="134" text-anchor="middle">獨立 approver</text><text class="small" x="775" y="160" text-anchor="middle">tag 指向 HEAD</text><rect class="ok-node" x="910" y="70" width="150" height="90" rx="14"/><text class="label" x="985" y="105" text-anchor="middle">發布</text><text class="small" x="985" y="132" text-anchor="middle">Ready</text><path class="line" d="M180 115h30" marker-end="url(#ar)"/><path class="line" d="M410 115h30" marker-end="url(#ar)"/><path class="line" d="M640 115h30" marker-end="url(#ar)"/><path class="line" d="M870 115h30" marker-end="url(#ar)"/>
-      </svg></div>
-      <p><code>verify_release_readiness.py</code> 採 fail-closed。必要檔不存在、hash 不符、URI 含 <code>latest</code>／<code>current</code>／<code>snapshot</code>／<code>nightly</code>、成品位於 release repo、簽章失敗、commit 不屬於 ref、工作樹不乾淨或 tag 不指向 HEAD，都會回傳失敗。</p>
-      <details open><summary>Release evidence 必要內容</summary><div><ul><li><code>schemaVersion: 2</code>、產品與語意化版本（Semantic Versioning）。</li><li>來源 repository、完整 commit SHA、允許的完整 ref。</li><li>不可變 artifact URI、artifact SHA-256、signature URI／SHA-256／algorithm。</li><li>CI system、run ID，以及 build、test、lint、security、package。</li><li>SPDX 2.x 或 CycloneDX JSON SBOM。</li><li>SLSA provenance v1。</li><li>獨立核准者與 publisher，兩者不可相同。</li></ul></div></details>
-      <div class="callout warn"><strong>自動驗證邊界：</strong>程式會核對 evidence 宣告值、本機 Git 與下載檔案，但不會連線查詢 CI run、成品 URI 或帳號身分。發布者仍須在實際平台確認 run 成功、材料來自受信任不可變位置，且核准者確實獨立。</div>
-    </section>
-
-    <section id="github">
-      <h2 class="heading"><svg class="icon"><use href="#shield"/></svg>9. GitHub／GitLab 與隱私安全設定</h2>
-      <p>本頁沒有 JavaScript、外部字型、CDN、分析工具、表單或網路請求；CSP（Content Security Policy）限制外部資源。內容使用通用 placeholder，不應填入內部 hostname、成品 URI、員工帳號或個人信箱。</p>
-      <h3>推送前</h3>
-      <ol><li>確認 remote URL 沒有內嵌帳號密碼或 Token，使用 SSH 或不含憑證的 HTTPS URL。</li><li>公開 repo 的 Git <code>user.email</code> 建議使用 GitHub noreply 地址。</li><li>建立功能分支，不直接在 <code>main</code> 累積未審查變更。</li><li>執行自我檢查、測試、skill audit、pre-push audit 與 package dry-run。</li><li>檢查 staged diff 後再 commit 與 push。</li></ol>
-      <pre><code>git switch -c agent/publish-platform-guide
-bash scripts/check.sh
-python3 -B -m unittest discover -s tests -v
-python3 -B scripts/audit_skills.py
-python3 -B scripts/pre_push_audit.py
-git add docs/index.html README.md
-git diff --cached --check
-git diff --cached --stat
-git commit -m "docs: add platform architecture and onboarding guide"
-git push -u origin agent/publish-platform-guide</code></pre>
-      <h3>Repository rules</h3>
-      <ul><li><strong>Ruleset：</strong>要求 Pull Request、必要 checks，禁止 force push 與刪除 <code>main</code>。</li><li><strong>Review：</strong>至少一位不是 PR 作者的協作者。CODEOWNERS 只有作者本人時，不得先啟用阻擋式 CODEOWNERS review。</li><li><strong>Actions：</strong>預設使用 <code>contents: read</code>；需要寫入的 workflow 應個別說明。</li><li><strong>Secret protection：</strong>啟用 secret scanning 與 push protection；敏感值放 GitHub Actions Secrets 或核准的 secret store。</li><li><strong>Tags：</strong>為 <code>v*</code> 設定 tag ruleset，避免已發布 tag 被移動或刪除。</li></ul>
-      <h3>新增 collaborator／member</h3>
-      <p>平台維護 repository 與 release repository 各自保存 <code>scripts/manage_collaborators.py</code>。預設只顯示計畫；加上 <code>--apply</code> 才會同步 GitHub／GitLab CODEOWNERS、加入成員並設定 PR／MR 與預設分支保護。</p>
-      <pre><code># 在兩個 repository 內分別執行
-read -rp "Repository username: " COLLABORATOR_USERNAME
-python3 -B scripts/manage_collaborators.py add "$COLLABORATOR_USERNAME"
-python3 -B scripts/manage_collaborators.py add "$COLLABORATOR_USERNAME" --preflight-only
-python3 -B scripts/manage_collaborators.py add "$COLLABORATOR_USERNAME" --apply
-python3 -B scripts/manage_collaborators.py check</code></pre>
-      <ul><li>GitHub 認證只讀取本機 <code>gh auth login</code> 狀態。</li><li>GitLab Token 只從 <code>GITLAB_TOKEN</code> 環境變數讀取，不寫入 CI 或 Git；必須是有效且包含 <code>api</code> scope 的 access token。</li><li>GitHub Free 的私人 repository 無法啟用 branch protection；腳本會在任何寫入前停止，不會改成公開或自動降低規則。</li><li>遠端寫入先設定保護政策，再授予成員權限；GitHub 新帳號只先收到唯讀邀請，接受後重跑才升為 write。</li><li>GitLab 先確認 Maintainer／Owner 權限、active username、direct membership、group membership lock、分支與核准政策 API；強制 Code Owner 與 approval rule 需要 Premium／Ultimate，不支援時停止，不降低規則。</li><li>CI 只執行唯讀的 <code>check</code>，不持有 repository 管理 Token。</li></ul>
-      <h3>發佈本頁</h3>
-      <ol><li>將 GitHub Pages source 指向發布 branch 的 <code>/docs</code> 目錄，或使用組織既有 Pages workflow。</li><li>首頁使用 <code>docs/index.html</code>。</li><li>公開前搜尋真實本機路徑、email、內部 URI、Token、run ID 或未公開產品名稱。</li><li>Pages 只展示說明；平台 ZIP 與產品成品仍留在 CI／成品平台。</li></ol>
-    </section>
-
-    <section id="troubleshooting">
-      <h2 class="heading"><svg class="icon"><use href="#tool"/></svg>10. 常見使用失誤</h2>
-      <div class="table-wrap"><table><thead><tr><th>現象</th><th>原因</th><th>正確處理</th></tr></thead><tbody>
-        <tr><td>找不到 <code>scripts/init_product.py</code></td><td>在 <code>&lt;Work&gt;/</code> 使用了平台內部相對路徑。</td><td>使用 <code>ai-dev-platform/scripts/init_product.py</code>，或先切換到 <code>ai-dev-platform/</code>。</td></tr>
-        <tr><td>安裝器拒絕含 <code>.git</code> 的目標</td><td>把維護儲存庫當成唯讀平台。</td><td>確認目標是 <code>&lt;Work&gt;/ai-dev-platform</code>；不要直接刪除用途不明的 Git 歷史。</td></tr>
-        <tr><td>平台檔案不可寫</td><td>安裝器已套用預期的唯讀權限。</td><td>產品程式碼放在產品開發儲存庫；平台變更回維護儲存庫開 PR。</td></tr>
-        <tr><td>新 collaborator 第一次套用後等待</td><td>新帳號尚未接受 <code>pull</code> 唯讀邀請。</td><td>對方接受邀請後，以完全相同的 <code>--apply</code> 命令重跑。</td></tr>
-        <tr><td>Evidence 通過但 readiness 失敗</td><td>JSON 格式正確，不代表實體成品、簽章、SBOM、SLSA、來源與 tag 正確。</td><td>依 <code>verify_release_readiness.py</code> 的 <code>[FAIL]</code> 修正，不可只執行 evidence verifier。</td></tr>
-        <tr><td>Release layout 拒絕 APK、ELF、ZIP 或 SBOM</td><td>把建置成品放進發行儲存庫。</td><td>實體檔留在成品平台或儲存庫外暫存目錄；release repo 只保存 URI 與 SHA-256。</td></tr>
-        <tr><td>PR 合併後仍封裝舊程式</td><td>本機尚未切回並更新 <code>main</code>。</td><td>執行 <code>git switch main</code>、<code>git pull --ff-only origin main</code>，確認工作樹乾淨後重建 ZIP。</td></tr>
-      </tbody></table></div>
-      <p>完整處理方式與三種產品案例見 <a href="getting-started.md">新手操作手冊</a>。</p>
-    </section>
-
-    <section id="verify">
-      <h2 class="heading"><svg class="icon"><use href="#shield"/></svg>11. 驗證與維護</h2>
-      <h3>修改平台後</h3><pre><code>bash scripts/check.sh
-python3 -B -m unittest discover -s tests -v
-python3 -B scripts/audit_skills.py
-python3 -B scripts/pre_push_audit.py
-python3 -B scripts/package_release.py --dry-run --allow-dirty</code></pre>
-      <h3>建立產品後</h3><pre><code># 稽核 Work 結構；這是唯讀操作
-python3 -B ai-dev-platform/scripts/audit_workspace.py &lt;Work&gt;
-
-# 在產品 repo 執行初始化程式寫入的實際命令
-&lt;build command&gt;
-&lt;test command&gt;
-&lt;lint command&gt;</code></pre>
-      <h3>主要程式依據</h3>
-      <div class="table-wrap"><table><thead><tr><th>程式／設定</th><th>本頁據此確認的行為</th></tr></thead><tbody>
-        <tr><td><code>scripts/init_product.py</code></td><td>產品命名、兩 repo、CI 轉接、入口檔、metadata 與 release 骨架。</td></tr><tr><td><code>scripts/package_release.py</code></td><td>乾淨來源、固定 ZIP metadata、逐檔 manifest、原子發布。</td></tr><tr><td><code>scripts/verify_package.py</code></td><td>安全路徑、單一頂層、hash／size／mode、第三方授權證據。</td></tr><tr><td><code>scripts/install_platform.py</code></td><td>sidecar SHA-256、暫存解壓、發行包自我檢查、回復與唯讀權限。</td></tr><tr><td><code>scripts/audit_workspace.py</code></td><td>平台無 Git、唯讀、產品 always-current、兩個獨立 Git repo。</td></tr><tr><td><code>scripts/verify_release_layout.py</code></td><td>release repo 的檔案與目錄允許清單。</td></tr><tr><td><code>scripts/verify_release_evidence.py</code></td><td>JSON 契約、必要 checks、SHA-256 格式、SBOM／SLSA 欄位與核准者分離。</td></tr><tr><td><code>scripts/verify_release_readiness.py</code></td><td>實體 artifact／signature／SBOM／provenance、source commit、tag 與工作樹。</td></tr><tr><td><code>tests/</code></td><td>兩 repo、Android 結構、SSD 實際建置、release layout 與簽章發行案例。</td></tr>
-      </tbody></table></div>
-      <div class="callout ok"><strong>同步維護：</strong>新增功能時，同一個變更應更新程式、測試、registry、distribution manifest 與本頁。不能只修改說明，讓初始化或驗證程式維持舊行為。</div>
-    </section>
+python3 -B scripts/package_release.py --dry-run --allow-dirty</code></pre><p class="ok">每個「完成」結論都應附實際指令、結果與不能在線驗證的限制。</p></section>
   </main>
-  <footer><p><strong>AI Dev Platform 1.4.0</strong> — 單檔靜態說明頁，不含外部腳本、追蹤碼或個人識別資訊。</p></footer>
 </body>
 </html>

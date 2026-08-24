@@ -1,5 +1,5 @@
 # registry/ci-adapters.yaml
-# 所有 adapter 都產生 docs/release-evidence.md 定義的同一份 JSON 證據；差別只在 CI 語法。
+# 所有 adapter 都產生 docs/ci-cd-release.md 定義的同一份 JSON 證據；差別只在 CI 語法。
 adapters:
   - id: github-actions
     doc: adapters/ci/github-actions.md

@@ -2,9 +2,9 @@
 
 ## 為什麼這份文件存在
 
-`ai-dev-platform` 核心維持產品無關，同一套 workflow／governance 可套用到 Android App、Linux kernel 或其他領域。實作產品程式碼時，AI 仍須取得該領域的具體知識，例如 Android 生命週期或 kernel 鎖定策略。
+`ai-dev-platform` 核心維持產品無關，同一套 workflow／governance 可套用到 Android App、Linux kernel 或其他領域。實作產品程式碼時，開發者仍須取得該領域的具體知識，例如 Android 生命週期或 kernel 鎖定策略。
 
-這份文件**不提供**這些具體知識本身，而是告訴 AI 代理人：遇到領域相關問題時，該去哪裡查、優先信任哪些來源。查到的結果應該整理進**產品儲存庫**自己的 `docs/domain-standards.md`，附上來源連結，不要回寫進 `ai-dev-platform`。
+這份文件**不提供**這些具體知識本身，而是列出查證順序與權威來源。查到的結果應整理進**產品儲存庫**自己的 `docs/domain-standards.md`，附上來源連結，不要回寫進 `ai-dev-platform`。
 
 ## 通用原則
 

@@ -52,7 +52,7 @@
 
 - 不得提交任何密鑰、憑證、內部網址、個資（見 `governance/security.md`）
 - 不得 commit 建置成品（build artifact）或暫存檔，應在 `.gitignore` 排除
-- AI 產生的 commit 若包含未經使用者確認的假設，須在 body 中明確標註
+- 工具協助產生的 commit 若包含未經使用者確認的假設，須在 body 中明確標註
 
 ## Squash 政策
 

@@ -3,7 +3,7 @@
 # 範例 pipeline：驗證 ai-dev-platform 儲存庫自身的完整性 + commit message 格式。
 # 套用到產品儲存庫（product-cicd-platform）時，把 self-check 步驟換成產品儲存庫
 # 自己的 build/test/lint，commit-lint 步驟可直接沿用（產品無關）。
-# 詳見 docs/how-enforce-rules.md。
+# 詳見 docs/ci-cd-release.md。
 
 workflow:
   rules:
@@ -27,10 +27,9 @@ self-check:
     - python3 -m pip install --disable-pip-version-check --no-input "PyYAML==6.0.3"
   script:
     - bash scripts/check.sh
-    - python3 -m py_compile scripts/init_product.py scripts/install_platform.py scripts/audit_workspace.py scripts/audit_skills.py scripts/pre_push_audit.py scripts/package_release.py scripts/package_optional_pack.py scripts/generate_sbom.py scripts/verify_package.py scripts/verify_release_evidence.py scripts/verify_release_layout.py scripts/verify_release_readiness.py scripts/validate_ci_adapters.py scripts/manage_collaborators.py
+    - python3 -m py_compile scripts/init_product.py scripts/install_platform.py scripts/audit_workspace.py scripts/pre_push_audit.py scripts/package_release.py scripts/generate_sbom.py scripts/verify_package.py scripts/verify_release_evidence.py scripts/verify_release_layout.py scripts/verify_release_readiness.py scripts/validate_ci_adapters.py scripts/manage_collaborators.py examples/spec-notes/validate.py
     - python3 -B -m unittest discover -s tests -v
     - python3 -B scripts/manage_collaborators.py check
-    - python3 -B scripts/audit_skills.py
     # GitLab runner 的 origin 可能含短期 CI 憑證；稽核前改回不含憑證的專案 URL。
     - git remote set-url origin "${CI_PROJECT_URL}.git"
     # --ci 只略過 runner 的 user.name／user.email，其他安全檢查不變。
