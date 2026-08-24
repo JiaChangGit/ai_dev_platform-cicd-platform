@@ -32,7 +32,7 @@ flowchart LR
    - 產生正式建置成品（artifact）。
    - 執行完整測試、必要的效能評測與快速驗證（smoke test）。
    - 產生 SHA-256 與軟體物料清單（Software Bill of Materials, SBOM）。
-   - 產生 SLSA provenance，並對建置成品產生 OpenSSL SHA-256 分離式簽章。領域原生簽章（Android App Signing／韌體供應商簽章）仍須依產品規範另行驗證。
+   - 產生 SLSA provenance，並對建置成品產生可獨立驗證的簽章。GitHub 公開儲存庫優先使用 OIDC/Sigstore artifact attestation，避免管理長效私鑰；其他 CI 可使用 OpenSSL SHA-256 分離式簽章。領域原生簽章（Android App Signing／韌體供應商簽章）仍須依產品規範另行驗證。
    - 所有必要 CI 檢查通過後，才能進入第 5 步。
 
 5. **交接到 `product-release`** — 交接邊界

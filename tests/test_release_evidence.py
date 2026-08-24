@@ -71,6 +71,30 @@ class ReleaseEvidenceTest(unittest.TestCase):
         self.assertTrue(any("security" in error for error in errors))
         self.assertTrue(any("publisher" in error for error in errors))
 
+    def test_accepts_github_keyless_attestation_identity(self):
+        evidence = valid_evidence()
+        evidence["source"]["repository"] = "https://github.com/example/platform"
+        evidence["source"]["ref"] = "refs/tags/v1.0.0"
+        evidence["artifact"]["signatureAlgorithm"] = "github-attestation"
+        evidence["artifact"]["signatureIdentity"] = {
+            "repository": "example/platform",
+            "workflow": "example/platform/.github/workflows/release.yml",
+            "sourceRef": "refs/tags/v1.0.0",
+        }
+        self.assertEqual(validate_evidence(evidence), [])
+
+    def test_rejects_mismatched_github_attestation_identity(self):
+        evidence = valid_evidence()
+        evidence["artifact"]["signatureAlgorithm"] = "github-attestation"
+        evidence["artifact"]["signatureIdentity"] = {
+            "repository": "example/platform",
+            "workflow": "other/platform/.github/workflows/release.yml",
+            "sourceRef": "refs/tags/v2.0.0",
+        }
+        errors = validate_evidence(evidence)
+        self.assertTrue(any("同一個 repository" in error for error in errors))
+        self.assertTrue(any("source.ref" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

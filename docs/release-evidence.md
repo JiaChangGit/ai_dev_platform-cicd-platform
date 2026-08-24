@@ -41,7 +41,7 @@ sequenceDiagram
 |---|---|
 | 產品 | 產品識別字與版本 |
 | 來源 | 儲存庫、commit、ref |
-| 建置成品 | 不可變 URI、SHA-256、分離式簽章 URI／SHA-256 |
+| 建置成品 | 不可變 URI、SHA-256、OpenSSL 分離式簽章或 GitHub/Sigstore attestation URI／SHA-256 |
 | CI 驗證 | CI 系統、run ID、`build`、`test`、`lint`、`security`、`package` |
 | 供應鏈 | SPDX／CycloneDX SBOM 與 SLSA provenance 的 URI／SHA-256 |
 | 職務分離 | 獨立核准者與不同的發布者 |
@@ -78,12 +78,14 @@ python3 -B ../ai-dev-platform/scripts/verify_release_readiness.py . \
   --provenance-file "$PROVENANCE_FILE"
 ```
 
+`openssl-sha256` 需要 `--public-key`。若 evidence 的 `artifact.signatureAlgorithm` 是 `github-attestation`，signature 與 provenance 使用同一份 Sigstore bundle，省略 `--public-key`；驗證器會執行 `gh attestation verify`，並同時限制 repository、signer workflow、source commit、source ref、SLSA predicate 與非 self-hosted runner。這個模式需要可執行的 GitHub CLI 與 Sigstore 公開透明記錄；不是只驗 SHA-256 字串。
+
 關卡會同時檢查：
 
 1. 發行證據檔名、JSON `version`、Release Note 標題與 `v<version>` tag 一致。
 2. `product-release` 工作目錄乾淨，tag 指向 HEAD，且儲存庫內沒有建置成品或 skill。
 3. 來源 commit 屬於允許的 `main`、`release/*` 或發行 tag。
-4. 成品位於含版本或摘要的不可變 URI，實體檔案的 SHA-256 一致，OpenSSL SHA-256 簽章驗證通過。
+4. 成品位於含版本或摘要的不可變 URI，實體檔案的 SHA-256 一致，OpenSSL SHA-256 簽章或受身分限制的 GitHub artifact attestation 驗證通過。
 5. SBOM 是可解析的 SPDX 2.x 或 CycloneDX JSON；provenance 是 `https://slsa.dev/provenance/v1`。
 6. 五項必要 CI 檢查全部存在，核准者與發布者不同。
 
@@ -116,6 +118,6 @@ CI 全部通過
 | Evidence verifier 通過，readiness 仍失敗 | 前者只驗證契約，後者驗證實體內容與 Git 狀態 | 依 readiness 的每一項 `[FAIL]` 修正，不可略過 |
 | `artifact.uri` 被判定可變 | URI 含 `latest`、`current`、`snapshot` 或 `nightly` | 使用包含版本或 SHA-256 前 12 碼的不可變 URI |
 | SHA-256 不一致 | 下載檔與 evidence 指向的內容不同 | 從不可變 URI 重新下載；不得只修改 JSON 迎合錯誤檔案 |
-| 簽章驗證失敗 | 公開金鑰、簽章或成品不是同一組 | 核對受信任公開金鑰來源與 CI 簽章工作，不把私鑰放進儲存庫 |
+| 簽章驗證失敗 | 公開金鑰、Sigstore bundle、來源身分或成品不是同一組 | 核對受信任公開金鑰或 evidence 內的 repository／workflow／source ref；不把私鑰放進儲存庫 |
 | Tag 驗證失敗 | `v<version>` 不存在或不指向 release HEAD | Commit evidence／Note 後建立 tag；不得移動已發布 tag |
 | Layout 拒絕驗證材料 | artifact、signature、SBOM 或 provenance 放進 release repo | 移到儲存庫外暫存目錄，只保留 URI 與 SHA-256 |

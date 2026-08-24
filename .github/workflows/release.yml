@@ -1,0 +1,168 @@
+name: release-build
+
+permissions:
+  contents: read
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: release-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-build:
+    name: release-build
+    runs-on: ubuntu-latest
+    environment: release-build
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Checkout immutable source tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Validate release tag and source
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = json.loads(Path("distribution/manifest.json").read_text(encoding="utf-8"))
+          expected = f"v{manifest['version']}"
+          actual = os.environ["GITHUB_REF_NAME"]
+          if actual != expected:
+              raise SystemExit(f"tag {actual} 與 distribution version {expected} 不一致")
+          PY
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+          test "$(git cat-file -t "refs/tags/${GITHUB_REF_NAME}")" = "tag"
+
+      - name: Install validation dependency
+        run: python3 -m pip install --disable-pip-version-check --no-input "PyYAML==6.0.3"
+
+      - name: Lint and validate repository
+        run: |
+          bash scripts/check.sh
+          python3 -m py_compile \
+            scripts/init_product.py \
+            scripts/install_platform.py \
+            scripts/audit_workspace.py \
+            scripts/audit_skills.py \
+            scripts/pre_push_audit.py \
+            scripts/package_release.py \
+            scripts/package_optional_pack.py \
+            scripts/generate_sbom.py \
+            scripts/verify_package.py \
+            scripts/verify_release_evidence.py \
+            scripts/verify_release_layout.py \
+            scripts/verify_release_readiness.py \
+            scripts/validate_ci_adapters.py \
+            scripts/manage_collaborators.py
+
+      - name: Run tests
+        run: python3 -B -m unittest discover -s tests -v
+
+      - name: Run security checks
+        run: |
+          python3 -B scripts/manage_collaborators.py check
+          python3 -B scripts/audit_skills.py
+          python3 -B scripts/pre_push_audit.py --ci
+
+      - name: Set up Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@67621b124fd2e251c5e8a0e6e3b91318f2287669 # v6.3.0
+        with:
+          gradle-version: "9.4.1"
+
+      - name: Build, test and lint Android example
+        working-directory: examples/android-app
+        run: |
+          gradle --no-daemon :app:assembleDebug
+          gradle --no-daemon :app:testDebugUnitTest
+          gradle --no-daemon :app:lintDebug
+
+      - name: Package release and generate SPDX SBOM
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          VERSION="${VERSION#v}"
+          ARCHIVE="dist/ai-dev-platform-${VERSION}.zip"
+          SBOM="dist/ai-dev-platform-${VERSION}.spdx.json"
+          CREATED="$(date -u -d "$(git show -s --format=%cI HEAD)" +%Y-%m-%dT%H:%M:%SZ)"
+          python3 -B scripts/package_release.py \
+            --version "${VERSION}" \
+            --source-ref "${GITHUB_SHA}"
+          python3 -B scripts/verify_package.py "${ARCHIVE}"
+          python3 -B scripts/generate_sbom.py "${ARCHIVE}" \
+            --output "${SBOM}" \
+            --created "${CREATED}"
+
+      - name: Generate keyless SLSA provenance
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/ai-dev-platform-*.zip
+
+      - name: Stage immutable release materials
+        env:
+          VERSION: ${{ github.ref_name }}
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          VERSION="${VERSION#v}"
+          cp "${BUNDLE_PATH}" "dist/ai-dev-platform-${VERSION}.provenance.sigstore.json"
+          sha256sum "dist/ai-dev-platform-${VERSION}.spdx.json" \
+            > "dist/ai-dev-platform-${VERSION}.spdx.json.sha256"
+          sha256sum "dist/ai-dev-platform-${VERSION}.provenance.sigstore.json" \
+            > "dist/ai-dev-platform-${VERSION}.provenance.sigstore.json.sha256"
+
+      - name: Publish candidate assets to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.ref_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          VERSION="${VERSION#v}"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          run_url = os.environ["RUN_URL"]
+          Path("release-candidate-notes.md").write_text(
+              "# AI Dev Platform v" + version + " build candidate\n\n"
+              "此頁保存已通過 CI 的不可變建置材料；正式發布狀態與 Release Note "
+              "以 [ai_dev_platform-release](https://github.com/JiaChangGit/ai_dev_platform-release) 為準。\n\n"
+              f"- CI run: {run_url}\n"
+              f"- Verify: `gh attestation verify ai-dev-platform-{version}.zip "
+              "-R JiaChangGit/ai_dev_platform-cicd-platform`\n",
+              encoding="utf-8",
+          )
+          PY
+          gh release create "v${VERSION}" \
+            "dist/ai-dev-platform-${VERSION}.zip" \
+            "dist/ai-dev-platform-${VERSION}.zip.sha256" \
+            "dist/ai-dev-platform-${VERSION}.spdx.json" \
+            "dist/ai-dev-platform-${VERSION}.spdx.json.sha256" \
+            "dist/ai-dev-platform-${VERSION}.provenance.sigstore.json" \
+            "dist/ai-dev-platform-${VERSION}.provenance.sigstore.json.sha256" \
+            --verify-tag \
+            --prerelease \
+            --title "AI Dev Platform v${VERSION} build candidate" \
+            --notes-file release-candidate-notes.md
