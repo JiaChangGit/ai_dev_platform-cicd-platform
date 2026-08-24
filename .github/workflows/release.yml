@@ -127,10 +127,13 @@ jobs:
         run: |
           VERSION="${VERSION#v}"
           cp "${BUNDLE_PATH}" "dist/ai-dev-platform-${VERSION}.provenance.sigstore.json"
-          sha256sum "dist/ai-dev-platform-${VERSION}.spdx.json" \
-            > "dist/ai-dev-platform-${VERSION}.spdx.json.sha256"
-          sha256sum "dist/ai-dev-platform-${VERSION}.provenance.sigstore.json" \
-            > "dist/ai-dev-platform-${VERSION}.provenance.sigstore.json.sha256"
+          (
+            cd dist
+            sha256sum "ai-dev-platform-${VERSION}.spdx.json" \
+              > "ai-dev-platform-${VERSION}.spdx.json.sha256"
+            sha256sum "ai-dev-platform-${VERSION}.provenance.sigstore.json" \
+              > "ai-dev-platform-${VERSION}.provenance.sigstore.json.sha256"
+          )
 
       - name: Publish candidate assets to GitHub Releases
         env:

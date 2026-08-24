@@ -7,6 +7,7 @@
 ## [1.4.0]
 
 - 新增 GitHub Free 公開儲存庫的正式 release-build pipeline，以 OIDC/Sigstore 產生受來源身分限制的 SLSA artifact attestation，不保存長效簽章私鑰
+- 新增受環境核准保護的 promotion readiness 關卡，通過 release metadata tag、hash、SBOM 與 attestation 驗證後才轉為正式 Release
 - 新增從已驗證 ZIP 產生檔案層級 SPDX 2.3 SBOM 的工具與測試，並讓 readiness 同時支援 OpenSSL 與 GitHub artifact attestation
 - 將 GitHub Actions 固定到完整 commit SHA，新增平台自有 Actions／Python 的 CodeQL 掃描、Dependabot／私密弱點通報設定與受獨立核准的 release environment
 - 新增 GitHub Free 作為正式閘門、GitLab Free 作為單向第二遠端的零付費操作手冊，明確記錄 GitLab compute minutes、required approval 與 pull mirror 的方案限制

@@ -101,5 +101,14 @@ Public 代表檔案、完整 Git 歷史、commit 作者資訊、Issue／PR、Act
 2. 擁有者在最新 `main` 建立 annotated `v<version>` tag。`release-build` environment 經獨立 reviewer 核准後，workflow 產生 ZIP、SHA-256、SPDX SBOM 與 GitHub/Sigstore SLSA bundle，並建立 prerelease build candidate。
 3. 下載 candidate assets，在 `ai_dev_platform-release` 的功能分支建立同版本 evidence 與 Release Note。`signatureAlgorithm` 使用 `github-attestation`，signature 與 provenance 指向同一份 Sigstore bundle。
 4. 發行庫 PR 的 `repository-policy` 通過並由非作者核准後合併；在合併後 `main` 建立同版本 annotated tag。
-5. `release-promotion` environment 再次取得獨立核准，下載並驗證 SHA-256、SPDX、來源 commit／tag 與 `gh attestation verify` 的 repository、workflow、source digest/ref，才建立正式 GitHub Release。
+5. 從同一來源 tag 啟動 promotion：
+
+   ```bash
+   gh workflow run promote-release.yml \
+     --repo JiaChangGit/ai_dev_platform-cicd-platform \
+     --ref "v${RELEASE_VERSION}" \
+     -f "version=${RELEASE_VERSION#v}"
+   ```
+
+   `release-promotion` environment 再次取得獨立核准；workflow 下載並驗證 SHA-256、SPDX、來源 commit／tag 與 `gh attestation verify` 的 repository、workflow、source digest/ref，才把 prerelease candidate 改為正式 GitHub Release。
 6. 驗證完成後，將兩個 `main` 與 tags 單向同步到 GitLab；GitLab 不重新產生另一套正式成品。
