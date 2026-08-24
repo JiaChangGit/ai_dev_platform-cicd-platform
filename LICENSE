@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 <JiaChang>
+Copyright (c) 2026 JiaChangGit contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,9 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-此授權只涵蓋本儲存庫自身原創內容（governance/、workflow/、docs/、templates/、
-registry/、scripts/、AGENTS.md 等）。`external/` 底下同步進來的第三方內容，
-授權條款各自獨立，見 external/README.md。

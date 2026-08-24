@@ -36,8 +36,34 @@
         "immutable": { "const": true },
         "signatureUri": { "type": "string", "minLength": 1 },
         "signatureSha256": { "$ref": "#/$defs/sha256" },
-        "signatureAlgorithm": { "const": "openssl-sha256" }
-      }
+        "signatureAlgorithm": { "enum": ["openssl-sha256", "github-attestation"] },
+        "signatureIdentity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repository", "workflow", "sourceRef"],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+            },
+            "workflow": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml$"
+            },
+            "sourceRef": { "type": "string", "pattern": "^refs/(?:heads/(?:main|release/.+)|tags/v.+)$" }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "signatureAlgorithm": { "const": "github-attestation" } },
+            "required": ["signatureAlgorithm"]
+          },
+          "then": { "required": ["signatureIdentity"] },
+          "else": { "not": { "required": ["signatureIdentity"] } }
+        }
+      ]
     },
     "verification": {
       "type": "object",

@@ -4,6 +4,15 @@
 
 格式參考 [Keep a Changelog](https://keepachangelog.com/)，版本號採語意化版本（見 `governance/release.md`）。
 
+## [1.4.0]
+
+- 新增 GitHub Free 公開儲存庫的正式 release-build pipeline，以 OIDC/Sigstore 產生受來源身分限制的 SLSA artifact attestation，不保存長效簽章私鑰
+- 新增受環境核准保護的 promotion readiness 關卡，通過 release metadata tag、hash、SBOM 與 attestation 驗證後才轉為正式 Release
+- 新增從已驗證 ZIP 產生檔案層級 SPDX 2.3 SBOM 的工具與測試，並讓 readiness 同時支援 OpenSSL 與 GitHub artifact attestation
+- 將 GitHub Actions 固定到完整 commit SHA，新增平台自有 Actions／Python 的 CodeQL 掃描、Dependabot／私密弱點通報設定與受獨立核准的 release environment
+- 新增 GitHub Free 作為正式閘門、GitLab Free 作為單向第二遠端的零付費操作手冊，明確記錄 GitLab compute minutes、required approval 與 pull mirror 的方案限制
+- 擴充發行儲存庫允許的公開安全政策、授權與 Dependabot 設定檔，並補充 Public 歷史、CI log、evidence URI 與身分資料的隱私邊界
+
 ## [1.3.0]
 
 - 新增各 repository 可獨立執行的 collaborator 管理腳本，同步 GitHub／GitLab CODEOWNERS、reviewer、必要 CI 與預設分支保護；管理 Token 不進入 CI 或 Git 歷史

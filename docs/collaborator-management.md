@@ -23,7 +23,7 @@ flowchart TD
 | 擁有者檔 | `.github/CODEOWNERS` | `.gitlab/CODEOWNERS` |
 | 變更範本 | Pull Request template | Merge Request template |
 | CI 阻擋 | Required status checks | Pipeline must succeed |
-| 審查阻擋 | Code Owner、過期核准失效、最後推送需核准 | Code Owner、approval rule、作者與提交者不得自行核准 |
+| 審查阻擋 | Code Owner、過期核准失效、最後推送需核准 | Premium／Ultimate 才能強制 Code Owner 與 approval rule；Free 只記錄 reviewer／approval |
 | 分支保護 | 禁止 force push／刪除，必須經 PR | 禁止直接 push／force push，必須經 MR |
 
 GitHub Free 只在公開 repository 提供 protected branch。私人 repository 必須使用 GitHub Pro、GitHub Team 或 GitHub Enterprise，才能把核准、Code Owner 與 required checks 設成合併阻擋條件。腳本會在寫入 CODEOWNERS、邀請 collaborator 或修改 merge 設定前先做方案預檢；不支援時會停止，避免遠端只套用一部分。
@@ -31,6 +31,8 @@ GitHub Free 只在公開 repository 提供 protected branch。私人 repository 
 本平台把分支保護列為必要條件。遠端操作若使用 `--no-configure-policy`，腳本會直接拒絕，不可用它避開 GitHub 或 GitLab 方案限制。
 
 GitLab 的強制 Code Owner 核准與 project approval rule 需要 Premium 或 Ultimate。腳本會先確認 Token 有效且包含完整 API 讀寫用的 `api` scope、身分至少具有 Maintainer／Owner 權限、目標 username 是 active、分支存在，並以唯讀方式查詢 direct membership、group membership lock、protected branch、approvals、approval rules 與指定的 Merge Request；全部通過後才寫入 CODEOWNERS、member 或 project policy。既有 protected branch 的 push、merge 與 unprotect 權限會一併正規化。遇到不支援的方案或權限時會失敗，不會自動改成較寬鬆的規則。
+
+採用 `docs/free-public-hosting.md` 的 GitLab Free 第二遠端方案時，不執行 GitLab `--apply`，因為它無法滿足本腳本的強制核准契約；只用 `--local-only` 保持兩份 CODEOWNERS 同步，並在 GitLab UI 設定基本 protected branch。正式核准與 release 仍由 GitHub Public 的必要規則執行。
 
 ## 資安設計
 
@@ -202,7 +204,7 @@ python3 -B scripts/manage_collaborators.py check
 | 現象 | 原因 | 處理方式 |
 |---|---|---|
 | 第一次 `--apply` 回傳狀態碼 2 | 新 GitHub 帳號只收到唯讀邀請，尚未成為有效 collaborator | 對方接受後，以完全相同參數重跑；不要把狀態碼 2 當成部分失敗後改用手動降級 |
-| GitHub 回傳私人儲存庫方案限制 | 目前方案不支援必要 branch protection | 升級適用方案；不得改公開或使用 `--no-configure-policy` 繞過 |
+| GitHub 回傳 Private 儲存庫方案限制 | GitHub Free 不支援 Private 的必要 branch protection | 可公開的專案使用 Public；必須 Private 時升級方案，不使用 `--no-configure-policy` 繞過 |
 | Required check 不存在 | workflow 尚未在遠端產生該 job 名稱 | 先成功執行一次 CI，再使用實際 check 名稱 |
 | GitLab 顯示 Token scope 不足 | 使用了 `read_api`、`write_repository` 或 CI Job Token | 改用包含標準 `api` scope 的核准 Token，執行完立刻 `unset` |
 | `--preflight-only` 通過後 `--apply` 仍失敗 | 預檢與寫入之間的遠端狀態改變 | 依已顯示的 `[OK]`／`[FAIL]` 判斷進度，修正後用相同參數重跑 |

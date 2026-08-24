@@ -14,6 +14,10 @@ SHA256 = re.compile(r"^[a-f0-9]{64}$")
 COMMIT = re.compile(r"^(?:[a-f0-9]{40}|[a-f0-9]{64})$")
 SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$")
 SOURCE_REF = re.compile(r"^refs/(?:heads/(?:main|release/.+)|tags/v.+)$")
+GITHUB_REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+GITHUB_WORKFLOW = re.compile(
+    r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml$"
+)
 REQUIRED_CHECKS = frozenset({"build", "test", "lint", "security", "package"})
 ROOT_FIELDS = {
     "schemaVersion", "product", "version", "source", "artifact", "verification",
@@ -71,16 +75,40 @@ def validate_evidence(data: object) -> list[str]:
     if not isinstance(source.get("ref"), str) or not SOURCE_REF.fullmatch(source["ref"]):
         errors.append("source.ref 只允許 main、release/* 或 v* tag 的完整 ref")
 
-    artifact_keys = {"uri", "sha256", "immutable", "signatureUri", "signatureSha256", "signatureAlgorithm"}
-    artifact = validate_object(data["artifact"], "artifact", artifact_keys, artifact_keys, errors)
+    artifact_required = {"uri", "sha256", "immutable", "signatureUri", "signatureSha256", "signatureAlgorithm"}
+    artifact_allowed = artifact_required | {"signatureIdentity"}
+    artifact = validate_object(data["artifact"], "artifact", artifact_required, artifact_allowed, errors)
     require_text(artifact, "uri", errors, "artifact.")
     require_text(artifact, "signatureUri", errors, "artifact.")
     require_sha(artifact, "sha256", errors, "artifact.")
     require_sha(artifact, "signatureSha256", errors, "artifact.")
     if artifact.get("immutable") is not True:
         errors.append("artifact.immutable 必須是 true")
-    if artifact.get("signatureAlgorithm") != "openssl-sha256":
-        errors.append("artifact.signatureAlgorithm 必須是 openssl-sha256")
+    signature_algorithm = artifact.get("signatureAlgorithm")
+    if signature_algorithm not in {"openssl-sha256", "github-attestation"}:
+        errors.append("artifact.signatureAlgorithm 必須是 openssl-sha256 或 github-attestation")
+    signature_identity = artifact.get("signatureIdentity")
+    if signature_algorithm == "github-attestation":
+        identity = validate_object(
+            signature_identity,
+            "artifact.signatureIdentity",
+            {"repository", "workflow", "sourceRef"},
+            {"repository", "workflow", "sourceRef"},
+            errors,
+        )
+        repository = identity.get("repository")
+        workflow = identity.get("workflow")
+        source_ref = identity.get("sourceRef")
+        if not isinstance(repository, str) or not GITHUB_REPOSITORY.fullmatch(repository):
+            errors.append("artifact.signatureIdentity.repository 必須是 owner/repository")
+        if not isinstance(workflow, str) or not GITHUB_WORKFLOW.fullmatch(workflow):
+            errors.append("artifact.signatureIdentity.workflow 必須是 owner/repository/.github/workflows/<file>.yml")
+        elif isinstance(repository, str) and not workflow.startswith(f"{repository}/"):
+            errors.append("artifact.signatureIdentity.workflow 必須位於同一個 repository")
+        if source_ref != source.get("ref"):
+            errors.append("artifact.signatureIdentity.sourceRef 必須與 source.ref 相同")
+    elif signature_identity is not None:
+        errors.append("openssl-sha256 不得包含 artifact.signatureIdentity")
 
     verification = validate_object(data["verification"], "verification", {"ciSystem", "runId", "checks"}, {"ciSystem", "runId", "checks"}, errors)
     require_text(verification, "ciSystem", errors, "verification.")

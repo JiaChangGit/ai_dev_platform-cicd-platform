@@ -1,0 +1,83 @@
+name: promote-release
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: SemVer without the leading v
+        required: true
+        type: string
+
+concurrency:
+  group: promote-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  promote-release:
+    name: promote-release
+    runs-on: ubuntu-latest
+    environment: release-promotion
+    permissions:
+      attestations: read
+      contents: write
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - name: Checkout immutable source tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          path: source
+
+      - name: Checkout matching release metadata tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: JiaChangGit/ai_dev_platform-release
+          ref: v${{ inputs.version }}
+          fetch-depth: 0
+          path: release
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Validate dispatch ref
+        working-directory: source
+        run: |
+          test "${GITHUB_REF}" = "refs/tags/v${VERSION}"
+          test "$(git rev-parse HEAD)" = "$(git rev-list -n 1 "v${VERSION}")"
+
+      - name: Download immutable build candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir materials
+          gh release download "v${VERSION}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --dir materials \
+            --pattern "ai-dev-platform-${VERSION}.zip" \
+            --pattern "ai-dev-platform-${VERSION}.spdx.json" \
+            --pattern "ai-dev-platform-${VERSION}.provenance.sigstore.json"
+
+      - name: Verify release readiness
+        run: |
+          python3 -B source/scripts/verify_release_readiness.py release \
+            --version "${VERSION}" \
+            --source-repo source \
+            --artifact-file "materials/ai-dev-platform-${VERSION}.zip" \
+            --signature-file "materials/ai-dev-platform-${VERSION}.provenance.sigstore.json" \
+            --sbom-file "materials/ai-dev-platform-${VERSION}.spdx.json" \
+            --provenance-file "materials/ai-dev-platform-${VERSION}.provenance.sigstore.json"
+
+      - name: Promote verified candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit "v${VERSION}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --prerelease=false \
+            --latest

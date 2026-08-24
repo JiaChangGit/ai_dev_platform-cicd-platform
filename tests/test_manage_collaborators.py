@@ -99,7 +99,20 @@ class CollaboratorManagementTest(unittest.TestCase):
             (root / ".gitlab/CODEOWNERS").write_text(content, encoding="utf-8")
             context = repository_context(root)
             self.assertEqual(context.kind, "release")
+            self.assertEqual(context.required_checks, ("repository-policy", "analyze-python"))
             self.assertEqual(local_policy_errors(context), [])
+
+    def test_maintenance_repository_requires_codeql(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / ".git").mkdir()
+
+            context = repository_context(root)
+
+            self.assertEqual(
+                context.required_checks,
+                ("self-check", "android-example", "analyze-actions", "analyze-python"),
+            )
 
     def test_atomic_write_preserves_existing_file_mode(self):
         with tempfile.TemporaryDirectory() as temp:

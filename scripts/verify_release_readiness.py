@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -16,6 +17,10 @@ from verify_release_layout import validate_release_layout
 
 
 MUTABLE_URI_WORDS = {"latest", "current", "snapshot", "nightly"}
+GITHUB_SOURCE = re.compile(
+    r"^(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)"
+    r"(?P<repository>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?$"
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -61,12 +66,44 @@ def validate_sbom(path: Path, evidence: dict, errors: list[str]) -> None:
         errors.append("SBOM 宣告 cyclonedx-json，但內容不是 CycloneDX JSON")
 
 
+def verify_github_attestation(
+    artifact_file: Path,
+    bundle_file: Path,
+    *,
+    repository: str,
+    workflow: str,
+    source_commit: str,
+    source_ref: str,
+    predicate_type: str,
+) -> str | None:
+    if shutil.which("gh") is None:
+        return "找不到 gh，無法驗證 GitHub artifact attestation"
+    result = subprocess.run(
+        [
+            "gh", "attestation", "verify", str(artifact_file),
+            "--repo", repository,
+            "--bundle", str(bundle_file),
+            "--signer-workflow", workflow,
+            "--source-digest", source_commit,
+            "--source-ref", source_ref,
+            "--predicate-type", predicate_type,
+            "--deny-self-hosted-runners",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    if result.returncode != 0:
+        return "GitHub artifact attestation 驗證失敗"
+    return None
+
+
 def validate_release_readiness(
     release_root: Path,
     source_repo: Path,
     artifact_file: Path,
     signature_file: Path,
-    public_key: Path,
+    public_key: Path | None,
     sbom_file: Path,
     provenance_file: Path,
     version: str | None = None,
@@ -97,16 +134,23 @@ def validate_release_readiness(
         if not first.startswith("# ") or f"v{version}" not in first:
             errors.append("Release Note 的一級標題必須包含同一版本 v<version>")
 
-    for path, label in (
-        (artifact_file, "建置成品"), (signature_file, "簽章"), (public_key, "公開金鑰"),
+    artifact = data.get("artifact", {})
+    signature_algorithm = artifact.get("signatureAlgorithm")
+    materials: list[tuple[Path, str]] = [
+        (artifact_file, "建置成品"), (signature_file, "簽章"),
         (sbom_file, "SBOM"), (provenance_file, "SLSA 來源證明"),
-    ):
+    ]
+    if signature_algorithm == "openssl-sha256":
+        if public_key is None:
+            errors.append("openssl-sha256 簽章需要 --public-key")
+        else:
+            materials.append((public_key, "公開金鑰"))
+    for path, label in materials:
         if not path.is_file():
             errors.append(f"{label}檔不存在：{path}")
         elif inside(path, release_root):
             errors.append(f"{label}檔不得存在 product-release 內：{path.name}")
 
-    artifact = data.get("artifact", {})
     uri = str(artifact.get("uri", ""))
     if any(word in {part.lower() for part in uri.replace(":", "/").split("/")} for word in MUTABLE_URI_WORDS):
         errors.append("artifact.uri 含 latest/current/snapshot/nightly 等可變路徑")
@@ -124,20 +168,49 @@ def validate_release_readiness(
     provenance = data.get("provenance", {})
     if provenance_file.is_file() and sha256_file(provenance_file) != provenance.get("sha256"):
         errors.append("SLSA 來源證明 SHA-256 與發行證據不一致")
-    if provenance_file.is_file():
+    if provenance_file.is_file() and signature_algorithm == "openssl-sha256":
         prov = load_json(provenance_file, errors, "SLSA 來源證明")
         if prov and prov.get("predicateType") != provenance.get("predicateType"):
             errors.append("SLSA predicateType 與發行證據不一致")
 
-    if shutil.which("openssl") is None:
-        errors.append("找不到 openssl，無法驗證建置成品簽章")
-    elif artifact_file.is_file() and signature_file.is_file() and public_key.is_file():
-        result = subprocess.run(
-            ["openssl", "dgst", "-sha256", "-verify", str(public_key), "-signature", str(signature_file), str(artifact_file)],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-        )
-        if result.returncode != 0:
-            errors.append("建置成品簽章驗證失敗")
+    if signature_algorithm == "openssl-sha256":
+        if shutil.which("openssl") is None:
+            errors.append("找不到 openssl，無法驗證建置成品簽章")
+        elif (
+            artifact_file.is_file()
+            and signature_file.is_file()
+            and public_key is not None
+            and public_key.is_file()
+        ):
+            result = subprocess.run(
+                ["openssl", "dgst", "-sha256", "-verify", str(public_key), "-signature", str(signature_file), str(artifact_file)],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+            )
+            if result.returncode != 0:
+                errors.append("建置成品簽章驗證失敗")
+    elif signature_algorithm == "github-attestation":
+        identity = artifact.get("signatureIdentity", {})
+        repository_name = str(identity.get("repository", ""))
+        source_repository = str(data.get("source", {}).get("repository", ""))
+        match = GITHUB_SOURCE.fullmatch(source_repository)
+        if match is None or match.group("repository") != repository_name:
+            errors.append("source.repository 必須與 GitHub attestation repository 相同")
+        if artifact.get("signatureSha256") != provenance.get("sha256"):
+            errors.append("GitHub attestation 的 signature 與 provenance 必須引用同一份 bundle")
+        if signature_file.is_file() and provenance_file.is_file() and signature_file.read_bytes() != provenance_file.read_bytes():
+            errors.append("GitHub attestation 的 signature 與 provenance 實體 bundle 不一致")
+        if artifact_file.is_file() and signature_file.is_file():
+            attestation_error = verify_github_attestation(
+                artifact_file,
+                signature_file,
+                repository=repository_name,
+                workflow=str(identity.get("workflow", "")),
+                source_commit=str(data.get("source", {}).get("commit", "")),
+                source_ref=str(identity.get("sourceRef", "")),
+                predicate_type=str(provenance.get("predicateType", "")),
+            )
+            if attestation_error:
+                errors.append(attestation_error)
 
     try:
         if git(release_root, "status", "--porcelain"):
@@ -175,7 +248,7 @@ def main() -> int:
     parser.add_argument("--source-repo", type=Path, required=True)
     parser.add_argument("--artifact-file", type=Path, required=True)
     parser.add_argument("--signature-file", type=Path, required=True)
-    parser.add_argument("--public-key", type=Path, required=True)
+    parser.add_argument("--public-key", type=Path)
     parser.add_argument("--sbom-file", type=Path, required=True)
     parser.add_argument("--provenance-file", type=Path, required=True)
     parser.add_argument("--version")

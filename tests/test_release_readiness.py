@@ -7,11 +7,12 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from verify_release_readiness import validate_release_readiness  # noqa: E402
+from verify_release_readiness import validate_release_readiness, verify_github_attestation  # noqa: E402
 
 
 def run(*args: str, cwd: Path) -> str:
@@ -19,6 +20,28 @@ def run(*args: str, cwd: Path) -> str:
 
 
 class ReleaseReadinessTest(unittest.TestCase):
+    @mock.patch("verify_release_readiness.shutil.which", return_value="/usr/bin/gh")
+    @mock.patch("verify_release_readiness.subprocess.run")
+    def test_github_attestation_verification_pins_identity(self, run_mock, _which_mock):
+        run_mock.return_value = subprocess.CompletedProcess([], 0, stdout="ok")
+        error = verify_github_attestation(
+            Path("artifact.zip"),
+            Path("bundle.json"),
+            repository="example/platform",
+            workflow="example/platform/.github/workflows/release.yml",
+            source_commit="a" * 40,
+            source_ref="refs/tags/v1.0.0",
+            predicate_type="https://slsa.dev/provenance/v1",
+        )
+        self.assertIsNone(error)
+        command = run_mock.call_args.args[0]
+        self.assertIn("--deny-self-hosted-runners", command)
+        self.assertEqual(command[command.index("--source-digest") + 1], "a" * 40)
+        self.assertEqual(
+            command[command.index("--signer-workflow") + 1],
+            "example/platform/.github/workflows/release.yml",
+        )
+
     @unittest.skipUnless(shutil.which("git") and shutil.which("openssl"), "需要 Git 與 OpenSSL")
     def test_accepts_complete_signed_release(self):
         with tempfile.TemporaryDirectory() as temp:

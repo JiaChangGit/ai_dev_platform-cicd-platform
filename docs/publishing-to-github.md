@@ -119,7 +119,7 @@ https://github.com/JiaChangGit/ai_dev_platform-cicd-platform/compare/main...agen
 
 ## 發行儲存庫
 
-`$WORK_ROOT/ai_dev_platform-release` 使用獨立 `.git` 與同名 remote。若需要從零重建，先在 GitHub 建立同名的空白 **Private** 儲存庫，不要預先建立 README、`.gitignore` 或 License；未來的成品 URI、CI run ID 或核准識別資訊可能不適合公開。只有在 `.git` 不存在且遠端空白時，才執行下列初始化：
+`$WORK_ROOT/ai_dev_platform-release` 使用獨立 `.git` 與同名 remote。本專案目前採空白 **Public** 儲存庫，evidence 只允許公開 GitHub URI、公開 handle 與不可變摘要；Public 才能在 GitHub Free 保留必要 branch protection。若未來需要保存內部 URI 或私密核准身分，必須先改成適用付費方案的 Private 儲存庫，不能一面公開敏感 evidence、一面期待 GitHub 設定代替資料分類。只有在 `.git` 不存在且遠端空白時，才執行下列初始化：
 
 ```bash
 cd "$WORK_ROOT/ai_dev_platform-release"
@@ -144,6 +144,6 @@ git push -u origin main
 | `pre_push_audit.py` 要求 Git 身分 | 本機模式需要可追溯的 commit 作者 | 只對目前儲存庫設定 `user.name` 與 GitHub noreply email；CI 才使用 `--ci` |
 | Required check 名稱找不到 | workflow 尚未在遠端執行 | 先推送 workflow 並成功執行一次，再設定 `self-check`、`android-example` 等實際 job 名稱 |
 | PR 無人可以核准 | 只有 PR 作者是 Code Owner | 先加入獨立協作者並確認可審查，再啟用阻擋式 CODEOWNERS review |
-| 私人儲存庫設定 branch protection 回傳 403 | GitHub 方案不支援必要功能 | 升級適用方案；不得改公開或移除阻擋條件來繞過 |
+| Private 儲存庫設定 branch protection 回傳 403 | GitHub Free 不支援 Private 的必要功能 | 本專案若維持完全可公開資料就使用 Public；若資料必須 Private，升級方案且不得移除阻擋條件 |
 | 推錯 remote | 維護與 release 儲存庫名稱接近 | 每次推送前執行 `git remote -v`；兩個儲存庫不得共用 origin |
 | PR 合併後仍用舊程式封裝 | 本機 `main` 尚未更新 | `git switch main`、`git pull --ff-only origin main`，確認乾淨後再封裝 |

@@ -24,16 +24,16 @@ jobs:
   self-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0  # commit-lint --range 需要完整歷史
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.x"
+          python-version: "3.12"
 
       - name: Install PyYAML（供 scripts/check.sh 做 YAML 語法檢查）
-        run: pip install pyyaml --quiet
+        run: python3 -m pip install --disable-pip-version-check --no-input "PyYAML==6.0.3"
 
       - name: Run repository self-check
         run: bash scripts/check.sh
@@ -48,6 +48,7 @@ jobs:
             scripts/pre_push_audit.py \
             scripts/package_release.py \
             scripts/package_optional_pack.py \
+            scripts/generate_sbom.py \
             scripts/verify_package.py \
             scripts/verify_release_evidence.py \
             scripts/verify_release_layout.py \
@@ -74,14 +75,14 @@ jobs:
   android-example:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
           java-version: "17"
 
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@67621b124fd2e251c5e8a0e6e3b91318f2287669 # v6.3.0
         with:
           gradle-version: "9.4.1"
 
