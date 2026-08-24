@@ -87,7 +87,9 @@ def repository_context(root: Path) -> RepositoryContext:
         root=resolved,
         kind="release" if is_release else "maintenance",
         patterns=RELEASE_PATTERNS if is_release else MAINTENANCE_PATTERNS,
-        required_checks=("repository-policy",) if is_release else ("self-check", "android-example"),
+        required_checks=("repository-policy", "analyze-python")
+        if is_release
+        else ("self-check", "android-example", "analyze-actions", "analyze-python"),
     )
 
 
