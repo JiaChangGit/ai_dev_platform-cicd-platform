@@ -10,7 +10,7 @@
 #   6. handoff_required: true 的 workflow 項目，templates 是否有包含 task-handoff.md
 #   7. workflow/governance/templates/docs 底下是否有完全沒被引用的孤兒檔案
 #   8. CHANGELOG.md 是否存在且至少有一個版本條目
-#   9. 發行包、第三方授權、CI 轉接器與領域設定檔是否有效
+#   9. 發行包、SBOM 輸入、CI 轉接器與領域設定檔是否有效
 #  10. CI 轉接器與領域設定檔參照是否有效
 #  11. 專案自有內容是否誤用非台灣繁體術語
 #  12. 共用平台、發行邊界與跨領域範例是否符合架構決策
@@ -46,8 +46,7 @@ fail() { echo "  [FAIL] $1"; FAIL=1; }
 echo "== 1. 必要檔案 =="
 for f in README.md AGENTS.md CLAUDE.md opencode.json CHANGELOG.md \
          scripts/init_product.py scripts/install_platform.py scripts/audit_workspace.py \
-         scripts/audit_skills.py scripts/pre_push_audit.py \
-         scripts/package_optional_pack.py scripts/verify_package.py \
+         scripts/pre_push_audit.py scripts/verify_package.py \
          scripts/verify_release_evidence.py scripts/verify_release_layout.py \
          scripts/verify_release_readiness.py scripts/validate_ci_adapters.py \
          scripts/manage_collaborators.py \
@@ -58,13 +57,13 @@ for f in README.md AGENTS.md CLAUDE.md opencode.json CHANGELOG.md \
 done
 
 echo "== 2. 目錄存在性 =="
-for d in workflow governance registry templates docs scripts external adapters distribution profiles examples tests; do
+for d in workflow governance registry templates docs scripts adapters distribution profiles examples tests; do
   if [ -d "$d" ]; then pass "$d/ 存在"; else fail "$d/ 缺少"; fi
 done
 
 echo "== 3. YAML 語法檢查 =="
 if python3 -c "import yaml" >/dev/null 2>&1; then
-  for y in registry/*.yaml external/*.yaml; do
+  for y in registry/*.yaml; do
     [ -f "$y" ] || continue
     if python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" "$y" >/dev/null 2>&1; then
       pass "$y 語法正確"
@@ -170,8 +169,6 @@ from pathlib import Path
 errors = []
 for path in [
     Path("distribution/manifest.json"),
-    Path("distribution/third-party-notices.json"),
-    Path("distribution/optional-packs.json"),
     Path("distribution/release-evidence.schema.json"),
     Path("adapters/ci/internal/release-evidence.contract.json"),
     Path("templates/release-evidence.json.template"),
@@ -184,22 +181,8 @@ for path in [
 try:
     manifest = json.loads(Path("distribution/manifest.json").read_text(encoding="utf-8"))
     includes = manifest.get("include", [])
-    required_offline = {
-        "external/anthropic-skills/THIRD_PARTY_NOTICES.md",
-        "external/anthropic-skills/skills",
-        "external/mattpocock-skills/LICENSE",
-        "external/mattpocock-skills/engineering",
-        "external/mattpocock-skills/misc",
-        "external/mattpocock-skills/productivity",
-        "external/superpowers",
-        "external/openai-cookbook/.codex/skills/docs-editor",
-        "external/openai-cookbook/examples/evals/realtime_evals/skills/bootstrap-realtime-eval",
-        "external/openai-cookbook/LICENSE",
-    }
-    if missing := sorted(required_offline - set(includes)):
-        errors.append(f"distribution manifest 缺少預設離線 skill／授權：{', '.join(missing)}")
-    if "external" in includes or "external/openai-cookbook" in includes:
-        errors.append("預設發行包不得包含完整 external/ 或 OpenAI Cookbook")
+    if any(item == "external" or item.startswith("external/") for item in includes):
+        errors.append("distribution manifest 不得內含第三方來源副本")
     if any(item == ".git" or item.startswith(".git/") for item in includes):
         errors.append("distribution manifest 不可包含 .git")
     archive_root = manifest.get("archiveRoot")
@@ -211,58 +194,12 @@ try:
 except Exception as exc:
     errors.append(f"無法驗證 distribution manifest: {exc}")
 
-try:
-    notices = json.loads(Path("distribution/third-party-notices.json").read_text(encoding="utf-8"))
-    for entry in notices.get("entries", []):
-        for key in ("path", "licenseEvidence", "snapshotTree"):
-            if not entry.get(key):
-                errors.append(f"第三方項目 {entry.get('id', '?')} 缺少 {key}")
-        for key in ("path", "licenseEvidence"):
-            value = entry.get(key)
-            if value and not Path(value).exists():
-                errors.append(f"第三方項目 {entry.get('id', '?')} 參照不存在: {value}")
-        packaged_paths = entry.get("packagedPaths")
-        if not isinstance(packaged_paths, list) or not packaged_paths:
-            errors.append(f"第三方項目 {entry.get('id', '?')} 缺少 packagedPaths")
-        else:
-            for value in packaged_paths:
-                if not isinstance(value, str) or not Path(value).exists():
-                    errors.append(f"第三方項目 {entry.get('id', '?')} 打包參照不存在: {value}")
-
-    if Path(".git").exists():
-        import subprocess
-        for entry in notices.get("entries", []):
-            actual = subprocess.check_output(
-                ["git", "rev-parse", f"HEAD:{entry['path']}"], text=True, stderr=subprocess.DEVNULL
-            ).strip()
-            if actual != entry.get("snapshotTree"):
-                errors.append(f"第三方項目 {entry.get('id', '?')} snapshotTree 與 Git tree 不同步")
-
-    subtree_registry = Path("external/subtrees.yaml")
-    if subtree_registry.is_file():
-        import yaml
-        subtree_items = yaml.safe_load(subtree_registry.read_text(encoding="utf-8"))["subtrees"]
-        subtree_by_name = {item["name"]: item for item in subtree_items}
-        for entry in notices.get("entries", []):
-            source = subtree_by_name.get(entry.get("id"))
-            if not source:
-                errors.append(f"第三方項目 {entry.get('id', '?')} 未登記在 external/subtrees.yaml")
-                continue
-            expected_fields = {"path": source["prefix"], "syncRepository": source["repo"], "branch": source["branch"]}
-            for key, expected in expected_fields.items():
-                if entry.get(key) != expected:
-                    errors.append(f"第三方項目 {entry.get('id', '?')} 的 {key} 與 external/subtrees.yaml 不同步")
-    elif os.environ.get("CHECK_MODE") != "consumer":
-        errors.append("維護儲存庫缺少 external/subtrees.yaml")
-except Exception as exc:
-    errors.append(f"無法驗證第三方 notices: {exc}")
-
 for error in errors:
     print(error)
 PYEOF
 )"
   if [ -z "$py_out" ]; then
-    pass "distribution manifest、第三方 notices 與 release evidence JSON 有效"
+    pass "distribution manifest 與 release evidence JSON 有效"
   else
     while IFS= read -r error; do
       [ -z "$error" ] && continue
@@ -296,21 +233,10 @@ else
   fail "CI 轉接器契約驗證失敗"
 fi
 
-if python3 -c "import yaml" >/dev/null 2>&1; then
-  if python3 -B scripts/audit_skills.py >/dev/null; then
-  pass "預設離線 skill 結構、路由、重疊與路由案例一致"
-  else
-    fail "skill 稽核失敗"
-  fi
-else
-  fail "找不到 PyYAML；無法執行 skill 路由稽核"
-fi
-
 echo "== 11. 台灣繁體術語 =="
-# external/ 保留第三方原文；docs/terminology.md 會列出不建議用詞作為反例。
+# docs/terminology.md 會列出不建議用詞作為反例。
 term_hits="$(grep -RInE \
   --exclude-dir=.git \
-  --exclude-dir=external \
   --exclude-dir=dist \
   --exclude-dir=__pycache__ \
   --exclude='terminology.md' \
@@ -338,40 +264,17 @@ done
 
 for f in \
   examples/android-app/app/src/main/AndroidManifest.xml \
-  examples/android-app/app/src/test/java/dev/aiplatform/sample/GreetingTest.kt \
+  examples/android-app/app/src/test/java/dev/aiplatform/sample/BuildStatusTest.kt \
   examples/ssd-pcie-fw/Makefile \
-  examples/ssd-pcie-fw/tests/test_fw_core.c; do
+  examples/ssd-pcie-fw/tests/test_fw_core.c \
+  examples/spec-notes/index.html \
+  examples/spec-notes/validate.py; do
   if [ -f "$f" ]; then
     pass "跨領域範例存在: $f"
   else
     fail "跨領域範例缺少: $f"
   fi
 done
-
-for f in \
-  external/anthropic-skills/skills/docx/SKILL.md \
-  external/openai-cookbook/.codex/skills/docs-editor/SKILL.md \
-  external/openai-cookbook/examples/evals/realtime_evals/skills/bootstrap-realtime-eval/SKILL.md \
-  external/mattpocock-skills/engineering/grill-with-docs/SKILL.md \
-  external/mattpocock-skills/productivity/grilling/SKILL.md \
-  external/mattpocock-skills/engineering/domain-modeling/SKILL.md \
-  external/superpowers/using-superpowers/SKILL.md; do
-  if [ -f "$f" ]; then
-    pass "離線第三方 skill 存在: $f"
-  else
-    fail "離線第三方 skill 缺少: $f"
-  fi
-done
-
-pending_skills="$(find external -name PENDING.md -print 2>/dev/null)"
-if [ -z "$pending_skills" ]; then
-  pass "第三方 skill 無待同步佔位檔"
-else
-  while IFS= read -r pending; do
-    [ -z "$pending" ] && continue
-    fail "第三方 skill 尚未完整同步: $pending"
-  done <<< "$pending_skills"
-fi
 
 if grep -q '../ai-dev-platform/AGENTS.md' templates/product-entrypoint/AGENTS.md.template && \
    grep -q 'always-current' scripts/init_product.py; then

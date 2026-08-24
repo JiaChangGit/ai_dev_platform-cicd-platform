@@ -187,13 +187,13 @@ def product_readme(config: ProductConfig, includes_example: bool) -> str:
     )
     return f"""# {config.display_name}
 
-本儲存庫保存 {config.product_type} 的產品原始碼與 CI/CD 設定。AI 開發工具一律讀取相鄰的 `../ai-dev-platform/AGENTS.md`，不複製平台規則或第三方 skill。
+本儲存庫保存 {config.product_type} 的產品原始碼與 CI/CD 設定。開發工具一律讀取相鄰的 `../ai-dev-platform/AGENTS.md`，不複製平台規則。
 
 {example_line}
 
 ```mermaid
 flowchart LR
-    P["../ai-dev-platform<br/>規則與離線 skill"] -.-> D["{config.name}-cicd-platform<br/>原始碼與測試"]
+    P["../ai-dev-platform<br/>規則與驗證工具"] -.-> D["{config.name}-cicd-platform<br/>原始碼與測試"]
     D -->|"build、test、lint、security、package"| C["{config.ci}<br/>CI／成品平台"]
     C -->|"evidence、URI、SHA-256"| R["../{config.name}-release<br/>發行中繼資料"]
 ```
@@ -219,7 +219,7 @@ flowchart LR
 
 ## 發行邊界
 
-建置成品保存於 CI／成品平台。`../{config.name}-release/` 只保存發行證據、Release Note、Git tag，以及成品 URI／SHA-256；不得複製原始碼、建置成品或 `external/`。
+建置成品保存於 CI／成品平台。`../{config.name}-release/` 只保存發行證據、Release Note、Git tag，以及成品 URI／SHA-256；不得複製原始碼或建置成品。
 
 ## 常見失誤
 
@@ -250,7 +250,7 @@ def architecture_doc(config: ProductConfig) -> str:
 
 ```mermaid
 flowchart LR
-    A["ai-dev-platform<br/>共用目前版本"] -.->|"規則、流程、skill"| B["{config.name}-cicd-platform<br/>產品原始碼與 CI/CD"]
+    A["ai-dev-platform<br/>共用目前版本"] -.->|"規則與流程"| B["{config.name}-cicd-platform<br/>產品原始碼與 CI/CD"]
     B -->|"build、test、lint、scan"| C["CI／成品平台"]
     C -->|"release evidence<br/>artifact URI／SHA-256"| D["{config.name}-release<br/>發行中繼資料"]
 ```
@@ -277,17 +277,17 @@ Accepted
 
 ## 背景（Context）
 
-{config.display_name} 需要與其他產品共用相同的 AI 開發規則，且產品 CI/CD 與發行儲存庫不得保存第三方 skill。
+{config.display_name} 需要與其他產品共用相同的開發與發行規則。
 
 ## 決策（Decision）
 
-產品入口檔固定讀取 `../ai-dev-platform/AGENTS.md`。平台更新後，產品下一次任務直接使用目前版本，不建立平台 lock file，也不使用 subtree 內嵌平台內容。
+產品入口檔固定讀取 `../ai-dev-platform/AGENTS.md`。平台更新後，產品下一次任務直接使用目前版本，不建立平台 lock file，也不內嵌平台內容。
 
 ## 後果（Consequences）
 
-- 所有產品立即取得平台規則與 skill 更新。
+- 所有產品立即取得已安裝平台的目前規則。
 - 平台更新可能同時影響多個產品，因此平台發行前必須執行跨領域範例驗證。
-- 產品儲存庫可以獨立保存原始碼，但 AI 開發環境必須維持 `Work/` 平行目錄結構。
+- 產品儲存庫可以獨立保存原始碼，但開發環境必須維持 `Work/` 平行目錄結構。
 """
 
 
@@ -435,13 +435,13 @@ def write_ci(product: Path, config: ProductConfig, platform_root: Path) -> None:
 def release_agents(config: ProductConfig) -> str:
     return f"""# AGENTS.md — {config.display_name} 發行儲存庫
 
-開始任務前先讀取 `../ai-dev-platform/AGENTS.md`、`../ai-dev-platform/workflow/release.md` 與 `../ai-dev-platform/docs/release-evidence.md`。
+開始任務前先讀取 `../ai-dev-platform/AGENTS.md`、`../ai-dev-platform/workflow/release.md` 與 `../ai-dev-platform/docs/ci-cd-release.md`。
 
 ## 儲存庫邊界
 
 - 只保存 `release-evidence/*.json`、`release-notes/*.md`、Git tag 與必要的儲存庫管理檔。
 - 建置成品只保存在 CI／成品平台；本儲存庫只記錄不可變 URI 與 SHA-256。
-- 不得加入產品原始碼、`external/`、第三方 skill、APK、AAB、韌體映像檔、ELF、ZIP 或其他建置成品。
+- 不得加入產品原始碼、APK、AAB、韌體映像檔、ELF、ZIP 或其他建置成品。
 - 本儲存庫使用獨立 `.git` 與 remote，不得和產品開發儲存庫共用 Git 歷史或 origin。
 - 若使用 `--no-git` 或需要重建 `.git`，只能連接同名的空白遠端；不得 force push 覆寫既有歷史。
 - 變更完成後先執行 `python3 -B ../ai-dev-platform/scripts/verify_release_layout.py .`。
@@ -581,7 +581,7 @@ python3 -B ../ai-dev-platform/scripts/verify_release_readiness.py . \
 git push origin "v${{RELEASE_VERSION}}"
 ```
 
-Evidence／Note 已經由 PR 合併到 `main`，不直接推送 `main`。`verify_release_evidence.py` 只驗證 JSON 欄位、格式與必要檢查名稱。`verify_release_readiness.py` 才會讀取實體檔案、重算 SHA-256、驗證 OpenSSL 簽章、SBOM、SLSA、來源 commit、tag 與工作樹；兩者不能互相取代。
+Evidence／Note 已經由 PR 合併到 `main`，不直接推送 `main`。`verify_release_evidence.py` 只驗證 JSON 欄位、格式與必要檢查名稱。`verify_release_readiness.py` 才會讀取實體檔案、重算 SHA-256、驗證簽章或 attestation、SBOM、SLSA、來源 commit、tag 與工作樹；兩者不能互相取代。
 
 Readiness 不會連線到 CI、成品 URI 或身分系統。發布者仍須在實際平台確認 evidence 的 run 成功、下載來源可信任，且核准者是有效的獨立人員。
 
@@ -599,7 +599,7 @@ Readiness 不會連線到 CI、成品 URI 或身分系統。發布者仍須在�
 
 
 def release_gitignore() -> str:
-    return """# 發行儲存庫不得保存敏感資料、產品原始碼、skill 或建置成品。
+    return """# 發行儲存庫不得保存敏感資料、產品原始碼或建置成品。
 .env
 .env.*
 *.pem
@@ -613,7 +613,6 @@ credentials/
 /.ai/handoffs/
 *.log
 __pycache__/
-external/
 src/
 app/
 build/

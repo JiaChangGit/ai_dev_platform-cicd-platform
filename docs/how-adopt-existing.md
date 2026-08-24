@@ -67,9 +67,9 @@ cp ../ai-dev-platform/scripts/commit-lint.sh scripts/commit-lint.sh
 
 若專案已有 wiki、舊文件或程式碼註解，先讀取再整合。舊文件可能保留當時的設計理由，但必須與現行程式碼比對。
 
-## Step 6-8
+## Step 6：建立發行邊界
 
-完成現況架構文件後，依全新專案流程評估外部框架。若該產品尚無發行儲存庫，導入時一併建立獨立的 `<product>-release`，並依 `docs/release-evidence.md` 的允許清單建立空骨架；不要等到第一次發行才臨時建立。CI adapter 與 release evidence 依 `docs/ci-adapters.md`、`docs/release-evidence.md` 疊加到既有 pipeline，不回頭改寫既有 Git 歷史。
+若產品尚無發行儲存庫，導入時一併建立獨立的 `<product>-release`，並依 `docs/architecture.md` 的允許清單建立空骨架；不要等到第一次發行才臨時建立。CI adapter 與 release evidence 依 `docs/ci-adapters.md`、`docs/ci-cd-release.md` 疊加到既有 pipeline，不回頭改寫既有 Git 歷史。
 
 ## 注意事項
 

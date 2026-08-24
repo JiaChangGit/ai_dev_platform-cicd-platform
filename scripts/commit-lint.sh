@@ -4,7 +4,7 @@
 # 檢查 commit message 是否符合 governance/commit.md 的 Conventional Commits 格式。
 # 只檢查 subject line（第一行）；body / footer 不受此規則約束。
 # 不檢查長度上限：50 字元是 governance/commit.md 提供的建議，
-# 不適合當成會擋 PR 的硬性 CI 規則（見 docs/how-enforce-rules.md 的原則）。
+# 不適合當成會擋 PR 的硬性 CI 規則。
 #
 # 用法:
 #   scripts/commit-lint.sh                  # 檢查 HEAD 的 commit message
@@ -20,18 +20,6 @@ set -uo pipefail
 TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 TYPE_SCOPE_RE="^(${TYPES})(\([a-zA-Z0-9._/-]+\))?!?: "
 
-# git subtree --squash 一定會在歷史裡留下一個「內層」squash commit
-# （例如 "Squashed 'external/foo/' content from commit <sha>" 或
-# "Squashed 'external/foo/' changes from <sha>..<sha>"），這個訊息由 git 本身
-# 產生，沒有 CLI 參數可自訂；`git subtree add/pull` 的 `-m` 僅套用到
-# 外層的合併 commit。這個內層 commit 仍然是 HEAD 的祖先，`--range` 模式一定
-# 會掃到它。若不放行，任何一次 scripts/sync.sh add/pull 都會讓 commit-lint
-# 的 PR 檢查必定失敗——不是因為有人寫了不合規的訊息，而是規則本身管不到
-# 這個 commit 的作者。同理放行 `git subtree add` 在沒有帶 -m 時的預設外層
-# 訊息（"Merge commit 'X' as 'Y'"），涵蓋不透過 scripts/sync.sh、手動下
-# git subtree 指令的情境（見 docs/how-sync-upstream.md）。
-SUBTREE_AUTO_RE="^(Squashed '.*'|Merge commit '.*' as '.*')"
-
 FAIL=0
 
 check_one() {
@@ -42,11 +30,6 @@ check_one() {
   if [ -z "$subject" ]; then
     echo "  [FAIL] $label: commit message 是空的"
     FAIL=1
-    return
-  fi
-
-  if [[ "$subject" =~ $SUBTREE_AUTO_RE ]]; then
-    echo "  [OK]   $label: $subject (git subtree 自動產生，略過格式檢查)"
     return
   fi
 

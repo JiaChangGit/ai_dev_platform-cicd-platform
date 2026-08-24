@@ -43,16 +43,12 @@ def generate_sbom(
     artifact_sha256 = sha256_file(archive_path)
     with ZipFile(archive_path) as archive:
         manifest = load_archive_json(archive, "/RELEASE-MANIFEST.json")
-        notices = load_archive_json(archive, "/distribution/third-party-notices.json")
 
     platform_id = str(manifest["platformId"])
     version = str(manifest["version"])
     files = manifest.get("files")
-    entries = notices.get("entries")
     if not isinstance(files, list) or not all(isinstance(item, dict) for item in files):
         raise ValueError("RELEASE-MANIFEST.json 的 files 必須是 object 陣列")
-    if not isinstance(entries, list) or not all(isinstance(item, dict) for item in entries):
-        raise ValueError("third-party-notices.json 的 entries 必須是 object 陣列")
 
     document_namespace = (
         f"{repository.rstrip('/')}/releases/tag/v{version}/"
@@ -100,35 +96,6 @@ def generate_sbom(
                 "spdxElementId": platform_spdx_id,
                 "relationshipType": "CONTAINS",
                 "relatedSpdxElement": file_id,
-            }
-        )
-
-    for entry in entries:
-        component_id = str(entry.get("id", ""))
-        snapshot = str(entry.get("snapshotTree", ""))
-        source = str(entry.get("syncRepository", ""))
-        license_evidence = str(entry.get("licenseEvidence", ""))
-        if not component_id or not snapshot or not source or not license_evidence:
-            raise ValueError("third-party-notices.json 含不完整的第三方元件")
-        component_spdx_id = spdx_id("Package", component_id)
-        packages.append(
-            {
-                "name": component_id,
-                "SPDXID": component_spdx_id,
-                "versionInfo": snapshot,
-                "downloadLocation": source,
-                "filesAnalyzed": False,
-                "licenseConcluded": "NOASSERTION",
-                "licenseDeclared": "NOASSERTION",
-                "copyrightText": "NOASSERTION",
-                "comment": f"授權證據：{license_evidence}",
-            }
-        )
-        relationships.append(
-            {
-                "spdxElementId": platform_spdx_id,
-                "relationshipType": "DEPENDS_ON",
-                "relatedSpdxElement": component_spdx_id,
             }
         )
 

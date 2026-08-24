@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "platformId": "ai-dev-platform",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "archiveRoot": "ai-dev-platform",
   "archiveName": "ai-dev-platform-{version}.zip",
   "include": [
@@ -19,16 +19,6 @@
     "distribution",
     "docs",
     "examples",
-    "external/anthropic-skills/THIRD_PARTY_NOTICES.md",
-    "external/anthropic-skills/skills",
-    "external/mattpocock-skills/LICENSE",
-    "external/mattpocock-skills/engineering",
-    "external/mattpocock-skills/misc",
-    "external/mattpocock-skills/productivity",
-    "external/superpowers",
-    "external/openai-cookbook/LICENSE",
-    "external/openai-cookbook/.codex/skills/docs-editor",
-    "external/openai-cookbook/examples/evals/realtime_evals/skills/bootstrap-realtime-eval",
     "governance",
     "profiles",
     "registry",
@@ -46,12 +36,6 @@
     "examples/**/build/**",
     "examples/**/dist/**",
     "examples/android-app/.gradle/**",
-    "examples/android-app/local.properties",
-    "external/mattpocock-skills/engineering/README.md",
-    "external/mattpocock-skills/misc/README.md",
-    "external/mattpocock-skills/productivity/README.md",
-    "external/superpowers/systematic-debugging/CREATION-LOG.md",
-    "external/superpowers/systematic-debugging/test-academic.md",
-    "external/superpowers/systematic-debugging/test-pressure-*.md"
+    "examples/android-app/local.properties"
   ]
 }

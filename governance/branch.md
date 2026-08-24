@@ -11,14 +11,14 @@
 | `hotfix` | 正式環境緊急修復，直接從 release 分支切出 | `hotfix/crash-on-startup` |
 | `release` | 發布準備分支 | `release/1.4.0` |
 | `chore` | 雜項（相依套件升級、CI 設定等） | `chore/bump-deps` |
-| `agent` | AI 代理人依使用者授權建立的短期分支 | `agent/harden-release-gates` |
+| `agent` | 開發工具依使用者授權建立的短期分支 | `agent/harden-release-gates` |
 
 - 分支名不放人名、日期、issue 系統以外的識別碼
 - 若有對應 issue 編號，可加在描述前：`feature/123-photo-scene-description`
 
 ## 策略選擇
 
-預設建議 **trunk-based development**（單一長期分支 `main`，短生命週期的功能分支，頻繁合併）：適合 AI 輔助下的快速迭代、CI/CD 完整的專案。
+預設建議 **trunk-based development**（單一長期分支 `main`，短生命週期的功能分支，頻繁合併）：適合短週期迭代且 CI/CD 完整的專案。
 
 若專案有以下特性，改採 **長期維護分支 / git-flow 變體**（適合需要同時維護多個版本的情境，例如 kernel 模組要對應多個核心版本、或需要長期支援 LTS）：
 - 需要同時對外支援多個穩定版本

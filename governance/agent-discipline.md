@@ -1,6 +1,6 @@
-# Governance：執行紀律（Agent Discipline）
+# Governance：執行紀律
 
-本文件定義 AI 代理人的執行紀律、完成條件與異常還原方式。commit 與審查的詳細規則分別以 `governance/commit.md`、`governance/review.md` 為準。
+本文件定義開發工作的執行紀律、完成條件與異常還原方式。commit 與審查的詳細規則分別以 `governance/commit.md`、`governance/review.md` 為準。
 
 ## 1. 每日執行紀律
 
@@ -12,19 +12,9 @@
 
 `workflow/feature.md` 與 `workflow/bugfix.md` 已將測試納入同一流程。對應測試通過前，變更不視為完成。
 
-### 1.2 優先使用已登記的 skill 或子代理人
+### 1.2 只載入當前任務需要的規則
 
-開始前先確認子任務是否已登記於 `registry/skills.yaml`，或符合 `registry/providers.yaml` 的角色定義。若有對應項目，依其固定流程處理，以維持結果一致且可複查。
-
-典型會用到專門 skill/sub-agent 的情境：
-
-- 產生特定格式文件（Word／PDF／簡報）：使用 `registry/skills.yaml` 登記的 skill
-- 可獨立完成且結果可驗證的子任務：可交由隔離工作階段的子代理人處理，只回傳必要結果
-- 對應 planner、implementer、verifier、reviewer 或 researcher 的階段性工作：依 `AGENTS.md` 2.1 節交接
-
-各工具的子代理人（sub-agent）設定方式見 `docs/tool-compatibility.md`。
-
-若已安裝 superpowers，可使用其 subagent-driven-development 等 skill。未安裝或工具不支援時，仍須遵守本節的分工與交接規則。
+先從 `registry/workflow.yaml` 選擇任務類型，只讀該項目列出的 workflow、governance 與 template。工具外掛、skills 與模型由使用者環境管理，不是平台依賴，也不得擴大使用者授權的任務範圍。
 
 ### 1.3 一個邏輯改動一個 commit
 
@@ -60,7 +50,7 @@
 
 ### 2.3 第三層：向官方來源核對版本與 API
 
-每次引用具體版本號、套件名稱或 API 用法時，都須查閱當下的官方文件。這類資訊更新頻率高，不得只依模型記憶決定。
+每次引用具體版本號、套件名稱或 API 用法時，都須查閱當下的官方文件。這類資訊更新頻率高，不得只依記憶決定。
 
 常見錯誤包含套件版本、API 參數順序、必要欄位及雲端服務介面路徑錯誤。核對結果須保留官方來源。
 

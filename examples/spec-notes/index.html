@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>裝置事件匯出教學手冊（虛構範例）</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.65; }
+    body { margin: 0 auto; max-width: 880px; padding: 2rem 1.25rem 4rem; }
+    header, section { margin-bottom: 2rem; }
+    .notice { border-left: .35rem solid #b66a00; padding: .8rem 1rem; background: color-mix(in srgb, #b66a00 12%, transparent); }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #8888; padding: .6rem; text-align: left; vertical-align: top; }
+    code { background: #8882; padding: .1rem .25rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>裝置事件匯出教學手冊</h1>
+    <p class="notice"><strong>虛構範例：</strong>本頁不代表任何標準或產品規格；用途是示範如何把規格整理成可追溯的教學文件。</p>
+  </header>
+  <main>
+    <section>
+      <h2>先讀輸入與輸出</h2>
+      <p>輸入是一組裝置事件；輸出是一組適合人員閱讀與工具比對的 UTF-8 文字列。先保留規格已定義的欄位與順序，不加入推測的轉換。</p>
+    </section>
+    <section>
+      <h2>需求對照</h2>
+      <table>
+        <thead><tr><th>需求</th><th>實作重點</th><th>驗收方式</th></tr></thead>
+        <tbody>
+          <tr><td>REQ-001</td><td>每筆一行，欄位依 sequence、level、code、message 排列。</td><td>比對 UTF-8 bytes 與完整欄位順序。</td></tr>
+          <tr><td>REQ-002</td><td>輸出依 sequence 遞增。</td><td>以 3、1、2 的輸入驗證輸出為 1、2、3。</td></tr>
+          <tr><td>REQ-003</td><td>未知 code 原樣保留，message 為 <code>UNKNOWN</code>。</td><td>輸入未登記 code，確認 code 未遺失。</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section>
+      <h2>不得自行補寫的行為</h2>
+      <ul>
+        <li>sequence 重複時的先後順序。</li>
+        <li>sequence 換回零時的比較方式。</li>
+        <li>message 含換行字元時的處理方式。</li>
+      </ul>
+      <p>以上條件都應標記為待確認，由規格負責人補充需求或由團隊留下決策紀錄。</p>
+    </section>
+  </main>
+</body>
+</html>

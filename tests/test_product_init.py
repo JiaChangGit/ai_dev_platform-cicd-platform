@@ -80,6 +80,8 @@ class ProductInitTest(unittest.TestCase):
             self.assertTrue((product / "app/src/main/AndroidManifest.xml").is_file())
             product_guide = (product / "README.md").read_text(encoding="utf-8")
             self.assertIn("../ai-dev-platform/docs/getting-started.md", product_guide)
+            self.assertNotIn("第三方 skill", product_guide)
+            self.assertNotIn("external/", product_guide)
             self.assertIn("gradle --no-daemon :app:assembleRelease", product_guide)
             self.assertIn("基本 CI 只執行 build、test 與 lint", product_guide)
             self.assertEqual(validate_release_layout(release), [])
@@ -89,6 +91,7 @@ class ProductInitTest(unittest.TestCase):
             for rule in (".env", "*.pem", "*.key", "credentials/", "/.ai/handoffs/", "*.zip"):
                 self.assertIn(rule, release_ignore)
             self.assertIn("獨立 `.git`", (release / "AGENTS.md").read_text(encoding="utf-8"))
+            self.assertNotIn("docs/release-evidence.md", (release / "AGENTS.md").read_text(encoding="utf-8"))
             self.assertIn(
                 "verify_release_readiness.py",
                 (release / "AGENTS.md").read_text(encoding="utf-8"),

@@ -15,7 +15,7 @@ flowchart TB
     C --> L
     C --> J
     C --> I
-    E --> V["發行儲存庫驗證<br/>schema、SHA-256、簽章、SBOM、SLSA、tag、獨立核准"]
+    E --> V["發行儲存庫驗證<br/>schema、SHA-256、簽章、SBOM、provenance、tag、獨立核准"]
 ```
 
 ## 套用方式
@@ -32,4 +32,4 @@ flowchart TB
 
 新增 CI 系統時，必須新增轉接器文件與模板、登記到 `registry/ci-adapters.yaml`，並保留所有必要的發行證據欄位。
 
-CI 憑證（credential）只能存放在 CI 的秘密資料儲存區（secret store）。不得寫入 YAML、模板、manifest 或發行證據。
+CI 憑證（credential）只能存放在 CI 的秘密資料儲存區（secret store）。不得寫入 YAML、模板、manifest 或發行證據。完整發布順序見 `docs/ci-cd-release.md`。

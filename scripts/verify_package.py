@@ -13,7 +13,6 @@ from pathlib import Path, PurePosixPath
 
 
 RELEASE_MANIFEST = "RELEASE-MANIFEST.json"
-OPTIONAL_PACK_MANIFEST = "OPTIONAL-PACK-MANIFEST.json"
 REQUIRED_ROOT_FILES = {"AGENTS.md", "CLAUDE.md", "README.md", "opencode.json"}
 
 
@@ -84,7 +83,7 @@ def verify_archive_contents(archive_path: Path) -> dict:
         names = {name.removeprefix(prefix) for name in archive_names}
         missing_root = sorted(REQUIRED_ROOT_FILES - names)
         if missing_root:
-            fail(f"壓縮檔缺少 AI 工具入口檔：{', '.join(missing_root)}")
+            fail(f"壓縮檔缺少開發工具入口檔：{', '.join(missing_root)}")
 
         release_manifest = json.loads(archive.read(manifest_member).decode("utf-8"))
         files = release_manifest.get("files")
@@ -111,59 +110,8 @@ def verify_archive_contents(archive_path: Path) -> dict:
         return release_manifest
 
 
-def verify_optional_archive_contents(archive_path: Path) -> dict:
-    """不依賴來源工作樹，驗證選用套件的路徑、hash、大小與權限。"""
-    with zipfile.ZipFile(archive_path) as archive:
-        archive_names = {name for name in archive.namelist() if not name.endswith("/")}
-        unsafe = sorted(name for name in archive_names if not safe_archive_name(name))
-        if unsafe:
-            fail(f"選用套件含不安全路徑：{', '.join(unsafe[:3])}")
-        manifests = [name for name in archive_names if name.endswith(f"/{OPTIONAL_PACK_MANIFEST}")]
-        if len(manifests) != 1:
-            fail(f"選用套件必須恰好包含一份 {OPTIONAL_PACK_MANIFEST}")
-        manifest_member = manifests[0]
-        prefix = manifest_member[: -len(OPTIONAL_PACK_MANIFEST)]
-        root_name = prefix.rstrip("/")
-        if not root_name or "/" in root_name:
-            fail("選用套件頂層必須是單一安全目錄")
-        if any(not name.startswith(prefix) for name in archive_names):
-            fail(f"選用套件內容不在 {root_name}/ 下")
-        manifest = json.loads(archive.read(manifest_member).decode("utf-8"))
-        files = manifest.get("files")
-        if not isinstance(files, list) or not files:
-            fail(f"{OPTIONAL_PACK_MANIFEST} 沒有 files 清單")
-        declared = {entry.get("path"): entry for entry in files if isinstance(entry, dict)}
-        actual = {name.removeprefix(prefix) for name in archive_names} - {OPTIONAL_PACK_MANIFEST}
-        if len(declared) != len(files) or set(declared) != actual:
-            fail(f"{OPTIONAL_PACK_MANIFEST} 與 ZIP 實際內容不一致")
-        for path, entry in declared.items():
-            member = f"{prefix}{path}"
-            payload = archive.read(member)
-            if hashlib.sha256(payload).hexdigest() != entry.get("sha256") or len(payload) != entry.get("size"):
-                fail(f"選用套件檔案 hash 或大小不符：{path}")
-            if entry.get("mode") not in {"0644", "0755"} or archive_file_mode(archive.getinfo(member)) != entry.get("mode"):
-                fail(f"選用套件檔案權限不符：{path}")
-        return manifest
-
-
-def verify_optional_archive(archive_path: Path, root: Path, pack_id: str) -> None:
-    platform = load_json(root / "distribution/manifest.json")
-    packs = load_json(root / "distribution/optional-packs.json").get("packs", [])
-    config = next((item for item in packs if item.get("id") == pack_id), None)
-    if config is None:
-        fail(f"找不到選用套件定義：{pack_id}")
-    manifest = verify_optional_archive_contents(archive_path)
-    expected = expected_payload_names(root, config)
-    if manifest.get("packId") != pack_id or manifest.get("platformVersion") != platform.get("version"):
-        fail("選用套件識別字或平台版本不一致")
-    declared = {entry.get("path") for entry in manifest.get("files", [])}
-    if declared != expected:
-        fail("選用套件檔案清單與 distribution/optional-packs.json 不一致")
-
-
 def verify_archive(archive_path: Path, root: Path) -> None:
     config = load_json(root / "distribution" / "manifest.json")
-    notices = load_json(root / "distribution" / "third-party-notices.json")
     expected = expected_payload_names(root, config)
     archive_root = config.get("archiveRoot", config["platformId"]).strip("/")
     prefix = f"{archive_root}/"
@@ -188,7 +136,7 @@ def verify_archive(archive_path: Path, root: Path) -> None:
             fail(f"壓縮檔含 manifest 未宣告內容：{', '.join(unexpected[:5])}")
         missing_root = sorted(REQUIRED_ROOT_FILES - names)
         if missing_root:
-            fail(f"壓縮檔缺少 AI 工具入口檔：{', '.join(missing_root)}")
+            fail(f"壓縮檔缺少開發工具入口檔：{', '.join(missing_root)}")
         if RELEASE_MANIFEST not in names:
             fail(f"壓縮檔缺少 {RELEASE_MANIFEST}")
 
@@ -207,20 +155,6 @@ def verify_archive(archive_path: Path, root: Path) -> None:
                 fail(f"檔案 hash 或大小不符：{path}")
             if entry.get("mode") != source_mode:
                 fail(f"檔案權限與來源工作樹不一致：{path}")
-
-        for entry in notices.get("entries", []):
-            packaged_paths = entry.get("packagedPaths") or [entry.get("path")]
-            if not isinstance(packaged_paths, list) or not packaged_paths:
-                fail(f"第三方項目 {entry.get('id', '?')} 沒有 packagedPaths")
-            for value in packaged_paths:
-                if not isinstance(value, str) or not any(
-                    name == value or name.startswith(f"{value.rstrip('/')}/") for name in names
-                ):
-                    fail(f"第三方項目 {entry.get('id', '?')} 缺少打包內容：{value}")
-            license_path = entry.get("licenseEvidence")
-            if not isinstance(license_path, str) or license_path not in names:
-                fail(f"第三方項目 {entry.get('id', '?')} 缺少授權證據：{license_path}")
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)

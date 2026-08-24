@@ -3,7 +3,7 @@
 # 範例 pipeline：驗證 ai-dev-platform 儲存庫自身的完整性 + commit message 格式。
 # 套用到產品儲存庫（product-cicd-platform）時，把 self-check 步驟換成產品儲存庫
 # 自己的 build/test/lint，commit-lint 步驟可直接沿用（產品無關）。
-# 詳見 docs/how-enforce-rules.md。
+# 詳見 docs/ci-cd-release.md。
 
 name: check
 
@@ -44,10 +44,8 @@ jobs:
             scripts/init_product.py \
             scripts/install_platform.py \
             scripts/audit_workspace.py \
-            scripts/audit_skills.py \
             scripts/pre_push_audit.py \
             scripts/package_release.py \
-            scripts/package_optional_pack.py \
             scripts/generate_sbom.py \
             scripts/verify_package.py \
             scripts/verify_release_evidence.py \
@@ -57,7 +55,6 @@ jobs:
             scripts/manage_collaborators.py
           python3 -m unittest discover -s tests -v
           python3 -B scripts/manage_collaborators.py check
-          python3 -B scripts/audit_skills.py
           # CI runner 不建立 commit；--ci 只略過 user.name／user.email，其他安全檢查不變。
           python3 -B scripts/pre_push_audit.py --ci
           python3 scripts/package_release.py --dry-run --source-ref "${{ github.sha }}"

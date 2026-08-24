@@ -31,7 +31,6 @@ MAINTENANCE_PATTERNS = (
     "*",
     "/governance/",
     "/distribution/",
-    "/external/",
     "/scripts/",
     "/.github/",
     "/.gitlab/",

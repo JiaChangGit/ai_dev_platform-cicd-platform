@@ -2,8 +2,6 @@
 
 本文件供平台維護者與文件作者使用。目的是讓專案自有的文件、註解與訊息採用一致的台灣繁體中文，並保留查詢技術資料時需要的英文關鍵字。
 
-`external/` 是第三方原始內容，不套用本文件，也不修改其文字。
-
 ## 固定術語
 
 | 建議用詞 | 英文關鍵字 | 使用方式 |
@@ -11,7 +9,6 @@
 | 儲存庫 | repository | 內文使用「儲存庫」；只有路徑、指令或既有名稱可使用 `repo` |
 | 唯讀平台包 | read-only platform package | 指下載並解壓後、刻意不含 `.git` 的 `ai-dev-platform/` |
 | 維護儲存庫 | maintenance repository | 指用來開發下一版平台的 `ai_dev_platform-cicd-platform/` |
-| AI 技能 | skill | `skill` 是工具生態的既有名稱，可保留英文；複數仍寫 `skill` |
 | 建置 | build | 不使用「構建」 |
 | 建置成品 | artifact | 指 CI 產生且可供驗證、交付的檔案，例如 APK、韌體映像檔或 ZIP |
 | 發行 | release | 指完成驗證、核准到對外提供版本的完整流程 |

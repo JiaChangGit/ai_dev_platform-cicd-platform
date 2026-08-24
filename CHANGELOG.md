@@ -4,6 +4,16 @@
 
 格式參考 [Keep a Changelog](https://keepachangelog.com/)，版本號採語意化版本（見 `governance/release.md`）。
 
+## [1.5.0]
+
+- 移除約 1.1 GB 的 vendored Cookbook、第三方 skills、subtree 同步、路由稽核、模型清單與選用套件機制；平台工作樹只保留自有規則、工具、模板與案例
+- 將重複的入門、架構、repository、CI/CD 與 release 文件合併為權威頁面，刪除已失效引用與宣傳式敘述
+- SSD PCIe 韌體範例新增固定容量 trace ring buffer、輸入／結果事件、覆寫順序測試與資料流說明
+- Android 範例改為可測試的建置狀態摘要，保留 AGP 9.2.0、Gradle 9.4.1、JDK 17、SDK 36 與內建 Kotlin 的官方相容組合
+- 新增虛構規格、閱讀筆記、需求追溯驗證與無外部資源的靜態 HTML 教學手冊
+- 明列 GitHub Free 已驗證設定、GitLab Free 的手動鏡像限制，以及第一份 candidate、release evidence 與 promotion 的實際步驟
+- 移除安裝器與發行驗證器的 optional pack 介面；正式包仍保留逐檔 hash、權限、SPDX SBOM 與 keyless attestation
+
 ## [1.4.0]
 
 - 新增 GitHub Free 公開儲存庫的正式 release-build pipeline，以 OIDC/Sigstore 產生受來源身分限制的 SLSA artifact attestation，不保存長效簽章私鑰

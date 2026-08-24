@@ -23,26 +23,20 @@ class DistributionVerifierTest(unittest.TestCase):
     ) -> tuple[Path, Path]:
         root = base / "source"
         (root / "distribution").mkdir(parents=True)
-        (root / "external" / "vendor").mkdir(parents=True)
+        (root / "docs").mkdir(parents=True)
         for name in ("AGENTS.md", "CLAUDE.md", "README.md", "opencode.json"):
             (root / name).write_text(name, encoding="utf-8")
-        (root / "external" / "vendor" / "LICENSE").write_text("license", encoding="utf-8")
+        (root / "docs" / "guide.md").write_text("guide", encoding="utf-8")
         config = {
             "schemaVersion": 1,
             "platformId": "ai-dev-platform",
             "archiveRoot": "ai-dev-platform",
-            "include": ["AGENTS.md", "CLAUDE.md", "README.md", "opencode.json", "external"],
+            "include": ["AGENTS.md", "CLAUDE.md", "README.md", "opencode.json", "docs"],
             "excludeNames": [".git"],
         }
-        notices = {
-            "entries": [
-                {"id": "vendor", "path": "external/vendor", "licenseEvidence": "external/vendor/LICENSE"}
-            ]
-        }
         (root / "distribution" / "manifest.json").write_text(json.dumps(config), encoding="utf-8")
-        (root / "distribution" / "third-party-notices.json").write_text(json.dumps(notices), encoding="utf-8")
 
-        payload_paths = ["AGENTS.md", "CLAUDE.md", "README.md", "opencode.json", "external/vendor/LICENSE"]
+        payload_paths = ["AGENTS.md", "CLAUDE.md", "README.md", "opencode.json", "docs/guide.md"]
         entries = []
         archive_path = base / "package.zip"
         prefix = "ai-dev-platform/" if prefixed else ""
@@ -60,7 +54,7 @@ class DistributionVerifierTest(unittest.TestCase):
                 zip_write(archive, f"{prefix}unexpected.bin", b"not declared")
         return archive_path, root
 
-    def test_accepts_prefixed_archive_and_vendor_directory(self):
+    def test_accepts_prefixed_archive_and_directory(self):
         with tempfile.TemporaryDirectory() as temp:
             archive, root = self.make_fixture(Path(temp))
             verify_archive(archive, root)

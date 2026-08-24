@@ -39,7 +39,7 @@ flowchart LR
    - 依 `templates/task-handoff.md` 產生供人閱讀的交接文件，保存在 `product-cicd-platform/.ai/handoffs/` 或 CI 紀錄，不提交到發行儲存庫。
    - 依 `templates/release-evidence.json.template` 產生機器可驗證的發行證據（release evidence）。
    - 建置成品存放在 CI／成品平台的不可變位置。發行儲存庫只保存發行證據、Release Note、Git tag 與必要管理檔，並以 URI、SHA-256、簽章和 SBOM 參照成品。
-   - 先執行 `python3 -B ../ai-dev-platform/scripts/verify_release_layout.py .`，確認沒有原始碼、建置成品或第三方 skill。
+   - 先執行 `python3 -B ../ai-dev-platform/scripts/verify_release_layout.py .`，確認沒有原始碼、建置成品或開發工具副本。
    - 核准者不得與產生建置成品的執行者相同；獨立性規則見 `governance/review.md`。
 
 6. **撰寫 Release Note** — `product-release`
@@ -49,7 +49,7 @@ flowchart LR
 7. **標記與發布** — `product-release`
    - 在功能分支 commit 發行證據與 Release Note，經必要 CI 與獨立核准合併到 `main`；不得直接推送 `main`。
    - 在合併後的 `main` 建立尚未推送、指向 HEAD 的版本標籤（tag）。若採 squash merge，不得沿用 PR 分支的 commit 或 tag。
-   - 執行 `scripts/verify_release_readiness.py`；任一關卡失敗都不得推送 tag、發布或推進。完整參數見 `docs/release-evidence.md`。
+   - 執行 `scripts/verify_release_readiness.py`；任一關卡失敗都不得推送 tag、發布或推進。完整參數見 `docs/ci-cd-release.md`。
    - Readiness 通過後才推送 tag，並將已核准的建置成品發布到對應通路。
 
 8. **發布後監控** — `product-release`

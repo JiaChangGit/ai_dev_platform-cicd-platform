@@ -14,7 +14,6 @@
 
 - [ ] `bash scripts/check.sh`
 - [ ] `python3 -B -m unittest discover -s tests -v`
-- [ ] `python3 -B scripts/audit_skills.py`
 - [ ] `python3 -B scripts/pre_push_audit.py`
 - [ ] typecheck／test／build 均完成
 
@@ -25,8 +24,8 @@
 - [ ] 第三方內容的來源、snapshot 與授權證據已同步
 - [ ] 對外行為、schema 或 CLI 變更已更新文件
 
-## AI 協作揭露
+## 工具協作揭露
 
-- 是否使用 AI：
+- 使用的開發工具與範圍：
 - 工具／模型：
 - 人工審查重點：

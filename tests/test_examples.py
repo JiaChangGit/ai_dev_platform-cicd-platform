@@ -2,6 +2,7 @@
 
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,6 +11,18 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ExampleValidationTest(unittest.TestCase):
+    def test_spec_notes_are_traceable_and_offline(self):
+        root = ROOT / "examples/spec-notes"
+        result = subprocess.run(
+            [sys.executable, "-B", "validate.py"],
+            cwd=root,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        self.assertIn("3 個需求識別字", result.stdout)
+
     def test_android_sample_has_build_test_and_app_entrypoint(self):
         root = ROOT / "examples/android-app"
         build = (root / "build.gradle.kts").read_text(encoding="utf-8")
@@ -18,7 +31,7 @@ class ExampleValidationTest(unittest.TestCase):
         self.assertNotIn("org.jetbrains.kotlin.android", build + app_build)
         self.assertIn("compileSdk = 36", app_build)
         self.assertTrue((root / "app/src/main/AndroidManifest.xml").is_file())
-        self.assertTrue((root / "app/src/test/java/dev/aiplatform/sample/GreetingTest.kt").is_file())
+        self.assertTrue((root / "app/src/test/java/dev/aiplatform/sample/BuildStatusTest.kt").is_file())
 
     @unittest.skipUnless(shutil.which("make") and shutil.which("cc"), "需要 make 與 C 編譯器")
     def test_firmware_sample_builds_tests_lints_and_packages(self):

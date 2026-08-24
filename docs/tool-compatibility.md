@@ -1,90 +1,23 @@
-# 工具相容性：Codex / Claude Code / opencode
+# 開發工具入口相容性
 
-## 核心策略：單一事實來源 + 輕量轉接
+本文件說明 Codex、Claude Code 與 opencode 如何讀取同一份專案規則。工具行為可能改版，設定前應重新查官方文件。
 
-`AGENTS.md` 是唯一維護的主要入口。`CLAUDE.md` 與 `opencode.json` 是轉接器，只負責讓工具載入 `AGENTS.md`，不重複保存規則。新增規則時修改 `AGENTS.md` 或其引用的 `workflow/`、`governance/`，避免規則分岔。
+## 單一入口
 
-## 各工具讀取方式對照
+`AGENTS.md` 是唯一維護的主要規則。`CLAUDE.md` 與 `opencode.json` 只負責載入，不重複保存 workflow 或 governance。
 
-| 工具 | 原生讀取檔案 | 需要轉接檔？ | 本儲存庫的轉接方式 |
-|---|---|---|---|
-| Codex CLI | `AGENTS.md`（專案根目錄） | 不需要 | 原生支援，直接讀 |
-| opencode | `AGENTS.md`（專案根目錄，優先於 `CLAUDE.md` fallback） | 不需要 | 原生支援；仍附上最小的 `opencode.json` 供未來擴充 |
-| Claude Code | `CLAUDE.md`（專案根目錄） | 需要 | `CLAUDE.md` 用 `@AGENTS.md` 匯入語法帶入內容 |
-
-## Claude Code：為什麼需要 `CLAUDE.md`
-
-Claude Code 目前原生只讀 `CLAUDE.md`，還不會自動讀 `AGENTS.md`——這是社群反應熱烈（anthropics/claude-code 儲存庫上有多個相關 issue）但截至目前官方尚未承諾支援的功能請求。官方文件記載的 `@path` 檔案匯入語法可以把 `AGENTS.md` 的內容帶進 `CLAUDE.md`，本儲存庫根目錄的 `CLAUDE.md` 就是這個最小轉接器：只有一行 `@AGENTS.md`，加上少數幾條「只有 Claude Code 需要知道」的補充（例如 auto memory 的使用邊界），不重複抄一份規則。
-
-## opencode：`opencode.json` 的角色
-
-opencode 會讀取根目錄的 `AGENTS.md`；同一專案同時存在 `AGENTS.md` 與 `CLAUDE.md` 時，只採用 `AGENTS.md`。本儲存庫仍提供最小的 `opencode.json`，用途如下：
-
-1. 明確聲明這個儲存庫遵循的 config schema
-2. 預留擴充點——未來若要用 opencode 的具名 agent 機制，對應 `registry/providers.yaml` 定義的角色（planner / implementer / verifier / reviewer / researcher），可以直接在 `agent` 欄位擴充，不需要重新設計
-
-opencode 的 `opencode.json` 支援以 `instructions` 陣列載入額外檔案，例如子目錄的 `AGENTS.md` 或特定規範。本儲存庫將此欄位留空，由 `AGENTS.md` 依任務載入所需的 `workflow/` 與 `governance/`，避免工作階段一開始載入無關內容。
-
-## 多儲存庫情境：product-cicd-platform 如何讀到 ai-dev-platform
-
-`AGENTS.md` 第 3 節的「平行參考模式」只講了意圖（AI 執行任務時讀取旁邊
-`ai-dev-platform/` 目錄），沒講機制——三個工具的原生探索範圍都**不包含
-sibling 目錄**：
-
-- **Codex CLI**：只沿「git root → cwd」這條路徑往下找 `AGENTS.md`。
-  `product-cicd-platform` 是獨立 Git 儲存庫，Codex 不會走到旁邊的
-  `ai-dev-platform/`，即使兩者是平行目錄。
-- **opencode**：官方文件明講不會自動解析 `AGENTS.md` 裡的 `@file` 參照；
-  opencode 不會將 `AGENTS.md` 中的 `@` 解析為 import。
-- **Claude Code**：`@path` import 是三者中唯一保證可靠的跨檔案機制，但要
-  有一個會被探索到的 `CLAUDE.md`（在 cwd 往上的路徑上）明確寫出來才行，
-  不會自動發生。
-
-因此 `product-cicd-platform` 一定要有自己的入口檔，`templates/product-entrypoint/`
-提供三個工具各自最可靠的機制：
-
-| 檔案 | 對應工具 | 可靠性 |
+| 工具 | 入口 | 平台做法 |
 |---|---|---|
-| `CLAUDE.md.template` | Claude Code | 高——`@` import 由 CLI 載入，不取決於 AI 是否主動讀取 |
-| `opencode.json.template` | opencode | 高——`instructions` 欄位是官方文件明確保證的機制 |
-| `AGENTS.md.template` | Codex CLI（也是 opencode／Claude Code 最終讀到的內容來源） | 中——純文字指示 AI 讀取 `../ai-dev-platform/AGENTS.md`，是否載入取決於工具的 agentic 行為 |
+| Codex | 專案根目錄 `AGENTS.md` | 產品入口明確要求再讀 `../ai-dev-platform/AGENTS.md` |
+| Claude Code | `CLAUDE.md` | 用 `@../ai-dev-platform/AGENTS.md` 匯入 |
+| opencode | `opencode.json` | 用 `instructions` 指向平行平台入口 |
 
-Codex 這條路徑的可靠性與本儲存庫其他文字指示相同（例如
-`AGENTS.md` 指示 AI 遇到領域問題先讀 `docs/domain-adaptation.md`，也是純
-文字指示、沒有結構性保證）——不是這裡新引入的風險，只是目前沒有更強的
-機制可以疊加。初始化工具會把明確的載入要求寫入產品根目錄 `AGENTS.md`；
-工作階段開始時仍應確認已讀取 `../ai-dev-platform/AGENTS.md`。產品端不提供
-內嵌模式或版本鎖定，確保所有產品使用 `Work/ai-dev-platform/` 的目前版本。
+三個工具原生探索都不應被假設會自動掃描 sibling 目錄，所以 `scripts/init_product.py` 會在每個產品建立最小入口檔。產品不複製平台規則，也不建立平台版本 lock；所有產品讀取已安裝的目前穩定包。
 
-## 外部框架（OpenSpec / superpowers / grill-with-docs）的多工具轉接方式
+## 模型、skills 與外掛
 
-以上談的都是「這個儲存庫自己的 `AGENTS.md`/`CLAUDE.md`/`opencode.json` 三個入口檔」如何被三個工具讀到。`docs/external-frameworks.md` 提到的三個外部框架用的是另一組機制，彼此獨立、互不取代：
+平台不提供模型 ID、API Token、第三方 skill 或外掛安裝。這些項目由開發者在所用工具或組織核准的設定中管理，不能寫進公開產品入口檔。工具自動載入多少上下文也由工具決定；平台只能藉由 `registry/workflow.yaml` 限縮「應該讀哪些文件」。
 
-- OpenSpec：以 `.claude/skills/`、`.codex/skills/`、`.opencode/skills/`（及 Claude Code、opencode 各自額外的 command 轉接器）分發，由 `openspec init` 在**產品儲存庫**內產生，不是本儲存庫 `AGENTS.md` 那套匯入機制的延伸
-- grill-with-docs：透過 `npx skills add` 分發，落地位置同樣是各工具自己的 skill 目錄
-- superpowers：透過各工具原生的外掛市集機制安裝（Claude Code 的 `/plugin`、Codex CLI 的 `/plugins`、opencode 的自訂安裝腳本），跟 skill 目錄又是另一套機制
+## 驗收
 
-三套機制（入口檔匯入、skill 目錄、外掛市集）同時存在，AI 代理人不需要為了統一它們而做任何事——各工具會依自己支援的機制分別讀取。逐一框架的確切安裝指令與離線替代方案見 `docs/external-frameworks.md`，不在這裡重複。
-
-## 若要新增別的工具
-
-多數新一代工具（例如 Cursor、Windsurf、Cline）已經直接支援讀取專案根目錄的 `AGENTS.md`，通常不需要額外轉接檔。新增前，先確認該工具的官方文件是否已原生支援 `AGENTS.md`；如果沒有，比照 `CLAUDE.md` 的模式做一個最小轉接器，不要複製第二份內容。
-
-## 專門 skill / sub-agent 委派：各工具的實際機制
-
-`governance/agent-discipline.md` 1.2 節講的是「什麼時候該委派」，這裡補「各工具實際上怎麼設定」——這部分本來就是工具相關細節，不強行塞進 governance 保持產品無關：
-
-- **Claude Code**：官方的 subagent 機制，用 markdown 檔案定義，放在專案層級 `.claude/agents/` 或使用者層級 `~/.claude/agents/`，各自有獨立 context window、可限制可用工具。Claude 會依委派設定自動比對任務內容決定要不要交給某個 subagent。細節見 `code.claude.com/docs/en/sub-agents`。
-- **opencode**：對應 `opencode.json` 的 `agent` 欄位（見本儲存庫 `opencode.json` 的預留擴充點），可以對應 `registry/providers.yaml` 定義的角色各自設定。
-- **Codex**：委派機制隨版本演進較快，設定前建議直接查 Codex 當下的官方文件，這裡不寫死可能過時的細節。
-
-## 來源
-
-以下為主要參考來源。這個領域的工具更新速度快，若內容與實際行為有出入，以各工具當下的官方文件為準：
-
-- Claude Code 記憶機制官方文件：`code.claude.com/docs/en/memory`
-- Claude Code subagents 官方文件：`code.claude.com/docs/en/sub-agents`
-- Claude Code 尚未原生支援 `AGENTS.md` 的功能請求討論：`github.com/anthropics/claude-code`（issue #6235、#34235）
-- opencode 規則文件（`AGENTS.md` 原生支援、與 `CLAUDE.md` 的 fallback 優先序）：`opencode.ai/docs/rules/`
-- opencode 設定文件（`opencode.json`、`instructions` 欄位）：`opencode.ai/docs/config/`
-- AGENTS.md 開放標準：`agents.md`
+初始化產品後，分別用實際工具開啟產品根目錄，要求它回報已讀到的平台版本、當前任務類型與對應 workflow 路徑。能回答不代表所有規則都會被強制執行；CI 與 branch protection 才是可強制的合併門檻。

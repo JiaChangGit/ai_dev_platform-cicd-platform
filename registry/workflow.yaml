@@ -1,7 +1,7 @@
 # registry/workflow.yaml
 #
 # 對照每一種 workflow/ 文件所需的 governance 規則、templates，
-# 以及建議的 provider 角色分工。AI 代理人執行任務前應先查此表——
+# 以及建議的工作角色。開始任務前應先查此表——
 # 這是「任務類型該遵守什麼」的唯一事實來源，AGENTS.md 不重複維護第二份。
 #
 # handoff_required: true 代表 suggested_roles 有多個角色接力執行，

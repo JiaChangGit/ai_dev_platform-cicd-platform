@@ -40,4 +40,4 @@
 
 正式發行的建置成品（artifact）必須可追溯到對應的 commit／tag，並附上符合 `distribution/release-evidence.schema.json` 的發行證據（release evidence）、SHA-256 與軟體物料清單（Software Bill of Materials, SBOM）。該領域無法產生 SBOM 時，須提供等效且完整的相依套件版本快照。缺少任一項，不得推進正式發行（promotion）。
 
-`product-release` 只保存發行證據、Release Note、Git tag、成品 URI／SHA-256 與必要的儲存庫管理檔；產品原始碼、建置成品與第三方 skill 必須留在各自的來源或成品系統。正式發布前必須通過 `scripts/verify_release_readiness.py`；目錄邊界、版本／tag、五項 CI 檢查、實體 SHA-256、可驗證簽章（OpenSSL 或受限制身分的 GitHub artifact attestation）、SBOM、SLSA 來源證明與獨立核准任一缺少都必須阻擋發行。
+`product-release` 只保存發行證據、Release Note、Git tag、成品 URI／SHA-256 與必要的儲存庫管理檔；產品原始碼與建置成品必須留在各自的來源或成品系統。正式發布前必須通過 `scripts/verify_release_readiness.py`；目錄邊界、版本／tag、五項 CI 檢查、實體 SHA-256、可驗證簽章（受限制身分的 GitHub artifact attestation 或其他核准機制）、SBOM、SLSA 來源證明與獨立核准任一缺少都必須阻擋發行。

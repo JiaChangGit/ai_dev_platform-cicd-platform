@@ -2,8 +2,6 @@
 
 檔名建議：`docs/adr/NNNN-short-title.md`（NNNN 為流水號）
 
-若專案已安裝 grill-with-docs（見 `docs/external-frameworks.md`），它會依此檔名慣例自動產出 ADR，內容結構可能與下方模板略有差異；沒裝的話依下方模板手動填寫。
-
 ```markdown
 # NNNN. （決策標題）
 
