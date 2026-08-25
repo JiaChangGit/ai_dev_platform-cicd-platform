@@ -21,7 +21,7 @@
 | `v1.5.0` 是正式 Release | [GitHub Release](https://github.com/JiaChangGit/ai_dev_platform-cicd-platform/releases/tag/v1.5.0) 的 `isDraft=false`、`isPrerelease=false`；標題已改為 `AI Dev Platform v1.5.0` | `latest` 與頁面內容仍可能由 owner 後續修改 |
 | `v1.5.0` 有 ZIP、checksum、SBOM、provenance | 同一 Release 的六個 assets；ZIP digest 為 `cf27d907e1ed9e2a1f1bcecafab5da78e837a1580e513fe115f20945c5d84191` | Asset 存在不等於內容正確，仍需 checksum 與 attestation verify |
 | release metadata 已核准 | release repo 的 [`release-evidence/1.5.0.json`](https://github.com/JiaChangGit/ai_dev_platform-release/blob/v1.5.0/release-evidence/1.5.0.json)與 [`release-notes/1.5.0.md`](https://github.com/JiaChangGit/ai_dev_platform-release/blob/v1.5.0/release-notes/1.5.0.md)，release repo 有 annotated `v1.5.0` tag | Evidence 是聲明；readiness 仍須以實體檔案重驗 |
-| promotion 會更新正式標題與說明 | `.github/workflows/promote-release.yml` 的 `gh release edit`；`tests/test_release_workflows.py` 檢查 title、notes、Release Note 與 evidence 連結 | `v1.5.0` 原流程未更新文字，已在 2026-08-25 手動修正；新行為要等下一次 promotion 實際驗收 |
+| promotion 會更新正式標題與說明 | `.github/workflows/promote-release.yml` 的 `gh release edit`；`tests/test_release_workflows.py` 檢查 title、notes、Release Note 與 evidence 連結 | `v1.5.0` 原流程未更新文字，已在 2026-08-25 手動修正；後續每版仍須核對 promotion run 與 Release JSON，不能只引用測試 |
 | Attestation 是 provenance，不是安全保證 | [GitHub artifact attestation 官方說明](https://docs.github.com/en/actions/concepts/security/artifact-attestations) | 不取代弱點分析、Android App Signing、韌體簽章或 secure boot |
 
 ## 3. GitHub 與 GitLab 狀態
@@ -31,6 +31,7 @@
 - source `main` required checks：`self-check`、`android-example`、`analyze-actions`、`analyze-python`；strict mode 開啟。
 - release `main` required checks：`repository-policy`、`analyze-python`；strict mode 開啟。
 - 兩者都要求 1 位核准者、CODEOWNERS、dismiss stale review、last push approval、conversation resolution、linear history；禁止 force push 與刪除，管理員也受保護。
+- 兩者都允許 rebase merge；`release/*` 用它保留已驗證的原子 commits。Squash merge 仍可供一般功能分支使用，但不適用於要求保留逐 commit 稽核紀錄的發行分支。
 - source 有 `release-build` 與 `release-promotion` environments；兩者 reviewer 是 `louisxchangtw`、prevent self-review 開啟、admin bypass 關閉。
 - Actions 預設 `GITHUB_TOKEN` 權限為 read，不能核准 PR。
 

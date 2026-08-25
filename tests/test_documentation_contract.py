@@ -136,6 +136,14 @@ class DocumentationContractTest(unittest.TestCase):
         self.assertIn("--keep-backup", guide)
         self.assertIn("previous platform backup retained", guide)
 
+    def test_release_guide_preserves_atomic_commit_history(self):
+        guide = read("docs/ci-cd-release.md")
+        self.assertIn("commit-lint.sh --message", guide)
+        self.assertIn("commit-lint.sh --range origin/main..HEAD", guide)
+        self.assertIn("gh pr checks --watch", guide)
+        self.assertIn("gh pr merge <number> --rebase --delete-branch", guide)
+        self.assertIn("last-push approval", guide)
+
     def test_case_guides_include_diagrams_and_product_boundaries(self):
         required = {
             "examples/ssd-pcie-fw/SAMPLE.md": ("flowchart", "sequenceDiagram", "產品端要提供"),
