@@ -51,6 +51,8 @@
 - 若專案要求 MISRA C 等編碼規範，注意這類規範通常需要授權取得完整條文，只能引用可公開取得的摘要
 - 儲存裝置韌體（SSD controller / NVMe）：NVMe 規範（nvmexpress.org）、PCIe 規範（pcisig.com，需會員資格才能取得完整條文，這是 `governance/agent-discipline.md` 2.3 節「查不到來源的時候」實際會遇到的情境，只能引用可公開取得的摘要）、NAND flash 相關標準（jedec.org）
 
+截至 2026-08-25，[PCI-SIG 公開頁](https://pcisig.com/specification-overview/pci-express-base)列出的 current approved PCI Express Base Specification 是 Revision 7.0；[NVM Express 公開頁](https://nvmexpress.org/specifications/)列出的 NVMe 2.4 是由 Base、Command Set、Transport 等多份文件組成。這兩項只用來說明查證方法，不能直接當成產品採用版本。產品須記錄實際採用的每份文件、revision、ECN／errata 與 controller vendor 文件。
+
 ### 後端 / 雲端服務
 - 對應雲端供應商的 Well-Architected / 最佳實踐文件
 - OWASP（owasp.org）：常見安全風險與防範

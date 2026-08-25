@@ -58,6 +58,11 @@ DOMAIN_DEFAULTS = {
 }
 
 CI_CHOICES = ("github-actions", "gitlab-ci", "jenkins", "internal-ci")
+EXAMPLE_BY_DOMAIN = {
+    "android": "android-app",
+    "ssd-pcie-fw": "ssd-pcie-fw",
+    "generic": "spec-notes",
+}
 
 
 def validate_product_name(value: str) -> str:
@@ -194,7 +199,7 @@ def product_readme(config: ProductConfig, includes_example: bool) -> str:
 ```mermaid
 flowchart LR
     P["../ai-dev-platform<br/>規則與驗證工具"] -.-> D["{config.name}-cicd-platform<br/>原始碼與測試"]
-    D -->|"build、test、lint、security、package"| C["{config.ci}<br/>CI／成品平台"]
+    D -->|"lint、test、build、security、package"| C["{config.ci}<br/>CI／成品平台"]
     C -->|"evidence、URI、SHA-256"| R["../{config.name}-release<br/>發行中繼資料"]
 ```
 
@@ -202,16 +207,16 @@ flowchart LR
 
 1. 讀取本儲存庫 `AGENTS.md`、`docs/architecture.md` 與 `docs/domain-standards.md`。
 2. 安裝 `{config.language_framework}` 所需工具；共用平台不提供產品工具鏈。
-3. 執行下列四個產品命令，確認本機結果。
-4. 檢查 `{config.ci}` 設定，補上 security、正式 package、成品保存、SBOM、SLSA 與簽章工作。初始化產生的基本 CI 只執行 build、test 與 lint。
+3. 依 lint／靜態檢查、test、build、package 的順序執行下列四個產品命令。
+4. 檢查 `{config.ci}` 設定，補上 security、正式 package、成品保存、SBOM、SLSA 與簽章工作。初始化產生的基本 CI 只執行 lint、test 與 build。
 5. 依 `../ai-dev-platform/docs/getting-started.md` 建立空白遠端、推送初始 commit，並設定 PR／MR、Code Owner 與必要 CI。
 
 ## 開發指令
 
 ```bash
-{config.build_command}
-{config.test_command}
 {config.lint_command}
+{config.test_command}
+{config.build_command}
 {config.package_command}
 ```
 
@@ -323,11 +328,11 @@ def github_ci(config: ProductConfig) -> str:
     setup = ""
     if config.domain == "android":
         setup = """
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
           java-version: "17"
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           gradle-version: "9.4.1"
 """
@@ -343,17 +348,17 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 {setup.rstrip()}
-      - name: Build
-        run: |
-          {config.build_command}
-      - name: Test
-        run: |
-          {config.test_command}
       - name: Lint
         run: |
           {config.lint_command}
+      - name: Test
+        run: |
+          {config.test_command}
+      - name: Build
+        run: |
+          {config.build_command}
 """
 
 
@@ -363,16 +368,16 @@ def gitlab_ci(config: ProductConfig) -> str:
 verify:
   stage: verify
   script:
-    - {json.dumps(config.build_command)}
-    - {json.dumps(config.test_command)}
     - {json.dumps(config.lint_command)}
+    - {json.dumps(config.test_command)}
+    - {json.dumps(config.build_command)}
 """
 
 
 def jenkins_ci(config: ProductConfig) -> str:
     commands = " && ".join(
         command.replace("\\", "\\\\").replace("'", "\\'")
-        for command in (config.build_command, config.test_command, config.lint_command)
+        for command in (config.lint_command, config.test_command, config.build_command)
     )
     return f"""pipeline {{
   agent any
@@ -640,7 +645,9 @@ def populate_product(
 ) -> None:
     product.mkdir(parents=True)
     if with_example:
-        example_name = "android-app" if config.domain == "android" else "ssd-pcie-fw"
+        example_name = EXAMPLE_BY_DOMAIN.get(config.domain)
+        if example_name is None:
+            raise ValueError(f"{config.domain} domain 沒有內建範例")
         example = platform_root / "examples" / example_name
         if not example.is_dir():
             raise ValueError(f"找不到範例來源：{example}")
@@ -769,9 +776,6 @@ def create_product_workspace(
         raise ValueError(f"平台必須位於 {expected_platform}，產品才能固定讀取 Work/ai-dev-platform 目前版本")
     if not (platform_root / "AGENTS.md").is_file():
         raise ValueError(f"找不到平台入口：{platform_root / 'AGENTS.md'}")
-    if with_example and config.domain not in DOMAIN_DEFAULTS:
-        raise ValueError("generic domain 沒有內建範例")
-
     product_target = output_root / f"{config.name}-cicd-platform"
     release_target = output_root / f"{config.name}-release"
     existing = [str(path) for path in (product_target, release_target) if path.exists()]
@@ -800,7 +804,11 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--domain", choices=("android", "ssd-pcie-fw", "generic"), required=True)
     result.add_argument("--ci", choices=CI_CHOICES, required=True)
     result.add_argument("--output-root", type=Path, help="Work 目錄；預設為平台目錄的上一層")
-    result.add_argument("--with-example", action="store_true", help="加入所選領域的最小驗收範例")
+    result.add_argument(
+        "--with-example",
+        action="store_true",
+        help="加入所選領域的最小驗收範例；generic 使用 spec-notes",
+    )
     result.add_argument("--no-git", action="store_true", help="不要執行 git init（只供測試或預覽環境）")
     result.add_argument("--dry-run", action="store_true", help="只顯示預計建立的路徑")
     result.add_argument("--product-type")

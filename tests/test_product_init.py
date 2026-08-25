@@ -2,6 +2,7 @@
 
 import json
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -29,19 +30,37 @@ def config(domain: str = "android", ci: str = "github-actions") -> ProductConfig
             package_command="gradle --no-daemon :app:assembleRelease",
             artifact_path="app/build/outputs/apk/release/app-release-unsigned.apk",
         )
+    if domain == "ssd-pcie-fw":
+        return ProductConfig(
+            name="sample-product",
+            display_name="Sample Product",
+            domain=domain,
+            ci=ci,
+            product_type="SSD PCIe 韌體",
+            target_platform="測試控制器",
+            language_framework="C11、Make",
+            build_command="make all",
+            test_command="make test",
+            lint_command="make lint",
+            package_command="make package",
+            artifact_path="dist/ssd-pcie-fw-sample.elf",
+        )
     return ProductConfig(
         name="sample-product",
         display_name="Sample Product",
         domain=domain,
         ci=ci,
-        product_type="SSD PCIe 韌體",
-        target_platform="測試控制器",
-        language_framework="C11、Make",
-        build_command="make all",
-        test_command="make test",
-        lint_command="make lint",
-        package_command="make package",
-        artifact_path="dist/ssd-pcie-fw-sample.elf",
+        product_type="規格閱讀手冊",
+        target_platform="虛構規格",
+        language_framework="Markdown、HTML、Python 3",
+        build_command="python3 -B validate.py",
+        test_command="python3 -B validate.py",
+        lint_command="python3 -B validate.py",
+        package_command=(
+            "mkdir -p dist && python3 -m zipfile -c dist/spec-handbook.zip "
+            "SAMPLE.md source-register.md sample-spec.md reading-notes.md index.html validate.py"
+        ),
+        artifact_path="dist/spec-handbook.zip",
     )
 
 
@@ -83,7 +102,7 @@ class ProductInitTest(unittest.TestCase):
             self.assertNotIn("第三方 skill", product_guide)
             self.assertNotIn("external/", product_guide)
             self.assertIn("gradle --no-daemon :app:assembleRelease", product_guide)
-            self.assertIn("基本 CI 只執行 build、test 與 lint", product_guide)
+            self.assertIn("基本 CI 只執行 lint、test 與 build", product_guide)
             self.assertEqual(validate_release_layout(release), [])
             self.assertFalse((release / "external").exists())
             self.assertFalse((release / "app").exists())
@@ -133,6 +152,68 @@ class ProductInitTest(unittest.TestCase):
                 )
                 self.assertTrue((product / ci_path).is_file())
                 self.assertTrue(any((product / ".ci/release").iterdir()))
+
+    def test_generic_domain_can_copy_spec_notes_example(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output_root = Path(temp)
+            platform = self.prepare_platform(output_root)
+            product, _ = create_product_workspace(
+                platform,
+                output_root,
+                config(domain="generic"),
+                with_example=True,
+                initialize_git=False,
+            )
+
+            for relative in (
+                "SAMPLE.md",
+                "source-register.md",
+                "sample-spec.md",
+                "reading-notes.md",
+                "index.html",
+                "validate.py",
+            ):
+                self.assertTrue((product / relative).is_file(), relative)
+            self.assertIn("python3 -B validate.py", (product / "README.md").read_text(encoding="utf-8"))
+            validation = subprocess.run(
+                [sys.executable, "-B", "validate.py"],
+                cwd=product,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+            self.assertEqual(validation.returncode, 0, validation.stdout)
+
+            if shutil.which("bash"):
+                package = subprocess.run(
+                    ["bash", "-lc", config(domain="generic").package_command],
+                    cwd=product,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                )
+                self.assertEqual(package.returncode, 0, package.stdout)
+                self.assertTrue((product / "dist/spec-handbook.zip").is_file())
+
+    def test_generated_github_ci_pins_actions_and_uses_required_order(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output_root = Path(temp)
+            platform = self.prepare_platform(output_root)
+            product, _ = create_product_workspace(
+                platform,
+                output_root,
+                config(),
+                initialize_git=False,
+            )
+
+            workflow = (product / ".github/workflows/check.yml").read_text(encoding="utf-8")
+            self.assertNotIn("actions/checkout@v", workflow)
+            self.assertNotIn("actions/setup-java@v", workflow)
+            self.assertNotIn("gradle/actions/setup-gradle@v", workflow)
+            self.assertLess(workflow.index("- name: Lint"), workflow.index("- name: Test"))
+            self.assertLess(workflow.index("- name: Test"), workflow.index("- name: Build"))
 
     @unittest.skipUnless(shutil.which("git"), "需要 Git")
     def test_initializes_two_independent_git_repositories(self):

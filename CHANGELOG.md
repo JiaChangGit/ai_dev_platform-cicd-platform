@@ -4,6 +4,18 @@
 
 格式參考 [Keep a Changelog](https://keepachangelog.com/)，版本號採語意化版本（見 `governance/release.md`）。
 
+## [1.5.1]
+
+- 修正入門文件仍宣稱尚未發布正式 Release，以及 generic 規格手冊命令缺少必要參數的問題
+- `generic --with-example` 現在會建立可驗證的 `spec-notes` 靜態手冊範例，並補上初始化測試
+- 產品 GitHub Actions 骨架改以完整 commit SHA 固定 actions，驗證順序統一為 lint／靜態檢查、test、build
+- release promotion 會將 candidate 標題與內容更新為正式 Release，並連結同版 Release Note 與 evidence
+- 新增既有 dev project 的平台更新、驗證、產品差異檢查與回復操作手冊
+- 重寫工作區架構、建立流程、資料流與發行時序，並新增文件聲明／證據對照測試
+- 擴充 SSD FW trace、Android App 與 Spec 靜態手冊三份案例，明列可執行步驟、產品替換清單與未實作邊界
+- 規格案例新增來源 revision 登記，驗證器會拒絕缺少／多出的 REQ ID、script 與外部資源
+- 同步產品初始化器的 `setup-gradle` 固定 commit，並修正 `v1.5.0` 正式 Release 的舊 candidate 標題與說明
+
 ## [1.5.0]
 
 - 移除約 1.1 GB 的 vendored Cookbook、第三方 skills、subtree 同步、路由稽核、模型清單與選用套件機制；平台工作樹只保留自有規則、工具、模板與案例

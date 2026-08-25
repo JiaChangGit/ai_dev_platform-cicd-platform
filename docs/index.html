@@ -7,37 +7,140 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
   <title>ai-dev-platform 離線手冊</title>
   <style>
-    :root{color-scheme:light dark;font-family:system-ui,sans-serif;line-height:1.65}body{max-width:980px;margin:auto;padding:2rem 1.2rem 5rem}nav{display:flex;flex-wrap:wrap;gap:.7rem;padding:1rem 0;border-block:1px solid #8886}nav a{color:inherit}section{padding:2rem 0;border-bottom:1px solid #8885}table{border-collapse:collapse;width:100%}th,td{border:1px solid #8886;padding:.6rem;text-align:left;vertical-align:top}pre,code{font-family:ui-monospace,monospace}pre{overflow:auto;padding:1rem;background:#8882}.warn{border-left:.35rem solid #b66a00;padding:.8rem 1rem;background:#b66a0018}.ok{border-left:.35rem solid #16733a;padding:.8rem 1rem;background:#16733a18}
+    :root{color-scheme:light dark;font-family:system-ui,sans-serif;line-height:1.65}body{max-width:1080px;margin:auto;padding:2rem 1.2rem 5rem}nav{display:flex;flex-wrap:wrap;gap:.7rem;padding:1rem 0;border-block:1px solid #8886;position:sticky;top:0;background:Canvas}nav a{color:inherit}section{padding:2rem 0;border-bottom:1px solid #8885}h2{margin-top:0}table{border-collapse:collapse;width:100%}th,td{border:1px solid #8886;padding:.6rem;text-align:left;vertical-align:top}pre,code{font-family:ui-monospace,monospace}pre{overflow:auto;padding:1rem;background:#8882}.warn{border-left:.35rem solid #b66a00;padding:.8rem 1rem;background:#b66a0018}.ok{border-left:.35rem solid #16733a;padding:.8rem 1rem;background:#16733a18}.diagram{display:flex;align-items:stretch;gap:.55rem;flex-wrap:wrap;margin:1rem 0}.node{border:1px solid #7778;border-radius:.45rem;padding:.7rem;min-width:9rem;flex:1;background:#8881}.arrow{display:flex;align-items:center;font-weight:700}.step{border-left:.3rem solid #567;padding-left:1rem;margin:1rem 0}.small{font-size:.92rem;color:GrayText}@media(max-width:650px){.arrow{width:100%;justify-content:center;transform:rotate(90deg)}nav{position:static}}
   </style>
 </head>
 <body>
   <header>
-    <p>平台版本 1.5.0 · 靜態單檔 · 無外部資源</p>
-    <h1>ai-dev-platform 離線手冊</h1>
-    <p>這套平台把開發規則、產品原始碼、建置成品與發行核准分開保存。它不代替產品規格、CI runner 或人工審查。</p>
+    <p>平台版本 1.5.1 · 靜態單檔 · 無 script／外部資源</p>
+    <h1>ai-dev-platform 離線操作手冊</h1>
+    <p>本平台保存開發流程、治理規則、模板與驗證工具。產品原始碼、SDK、規格、建置成品與簽章金鑰由產品儲存庫及其核准系統管理。</p>
   </header>
-  <nav aria-label="本頁目錄"><a href="#purpose">目的</a><a href="#architecture">架構</a><a href="#flow-section">資料流</a><a href="#setup">建立</a><a href="#cases">案例</a><a href="#boundaries">邊界</a><a href="#release">發行</a><a href="#verify">驗證</a></nav>
+  <nav aria-label="本頁目錄"><a href="#purpose">用途</a><a href="#architecture">架構</a><a href="#flow-section">流程</a><a href="#setup">建立</a><a href="#update">更新</a><a href="#cases">案例</a><a href="#boundaries">邊界</a><a href="#release">發行</a><a href="#verify">驗證</a></nav>
   <main id="main">
-    <section id="purpose"><h2>目的</h2><p>依任務只讀必要 workflow、governance 與 template，減少重複上下文；合併與發布仍由測試、PR、branch rule 與 environment reviewer 強制。</p></section>
-    <section id="architecture"><h2>架構</h2><table><thead><tr><th>位置</th><th>內容</th></tr></thead><tbody><tr><td>ai-dev-platform</td><td>唯讀規則與工具，不含第三方來源副本。</td></tr><tr><td>product-cicd-platform</td><td>產品原始碼、測試與 CI。</td></tr><tr><td>product-release</td><td>Release Note、evidence 與 tag；沒有原始碼或建置成品。</td></tr><tr><td>CI／成品平台</td><td>ZIP、APK、ELF、SBOM 與 attestation。</td></tr></tbody></table></section>
-    <section id="flow-section"><h2>資料流</h2><p>需求 → source PR → build／test／lint／security／package → candidate → release evidence PR → 同版 tag → environment 核准 → 正式 release。</p><p class="warn">Attestation 連結 workflow、repository 與 commit，不代表成品沒有弱點，也不取代產品原生簽章。</p></section>
-    <section id="setup"><h2>建立產品</h2><pre><code>cd /absolute/path/to/Work/ai-dev-platform
+    <section id="purpose">
+      <h2>1. 用途與限制</h2>
+      <p>Registry 指出一項任務需要讀取的 workflow、governance 與 template；CI、branch rule、environment reviewer 與人工審查負責強制門檻。平台不保證固定的上下文節省比例，也不判斷產品規格是否正確。</p>
+      <table><thead><tr><th>平台處理</th><th>產品處理</th></tr></thead><tbody><tr><td>任務流程、PR／ADR／evidence 格式、初始化、安裝、稽核與 release 驗證</td><td>需求、架構、領域規格、工具鏈、測試、成品、部署、簽章與營運</td></tr></tbody></table>
+    </section>
+
+    <section id="architecture">
+      <h2>2. 工作區架構</h2>
+      <div class="diagram" role="img" aria-label="平台來源、唯讀平台、產品與發行儲存庫架構">
+        <div class="node"><strong>維護來源</strong><br>ai_dev_platform-cicd-platform<br><span class="small">修改平台時使用</span></div><div class="arrow">→</div>
+        <div class="node"><strong>GitHub Release</strong><br>ZIP／hash／SBOM／attestation</div><div class="arrow">→</div>
+        <div class="node"><strong>唯讀平台</strong><br>Work/ai-dev-platform</div><div class="arrow">⇢</div>
+        <div class="node"><strong>產品開發庫</strong><br>product-cicd-platform</div>
+      </div>
+      <table><thead><tr><th>位置</th><th>保存內容</th><th>不保存</th></tr></thead><tbody>
+        <tr><td>ai-dev-platform</td><td>唯讀規則、模板與工具</td><td>產品程式碼、第三方來源副本</td></tr>
+        <tr><td>product-cicd-platform</td><td>產品原始碼、測試、文件、CI</td><td>正式金鑰</td></tr>
+        <tr><td>CI／成品平台</td><td>ZIP、APK、AAB、ELF、SBOM、attestation</td><td>不必要的長效憑證</td></tr>
+        <tr><td>product-release</td><td>Release Note、evidence、tag</td><td>產品原始碼與建置成品</td></tr>
+      </tbody></table>
+    </section>
+
+    <section id="flow-section">
+      <h2>3. 開發與資料流</h2>
+      <div class="diagram" role="img" aria-label="開發驗證流程">
+        <div class="node">需求／問題</div><div class="arrow">→</div><div class="node">選 workflow</div><div class="arrow">→</div><div class="node">修改程式、測試、文件</div><div class="arrow">→</div><div class="node">lint</div><div class="arrow">→</div><div class="node">test</div><div class="arrow">→</div><div class="node">build／security／package</div><div class="arrow">→</div><div class="node">PR 與獨立審查</div>
+      </div>
+      <p>成品資料流：產品 source → CI 驗證 → artifact 平台 → URI／SHA-256／source commit／CI run → release evidence。Release repository 不接收 ZIP、APK、ELF 或原始碼。</p>
+    </section>
+
+    <section id="setup">
+      <h2>4. 建立產品</h2>
+      <div class="step"><strong>準備：</strong>Git、Bash、Python 3、PyYAML 6.0.3、GitHub CLI；Android 另需 JDK 17、SDK 36、Gradle 9.4.1；SSD 案例另需 make 與 C11 compiler。</div>
+      <div class="step"><strong>驗證 Release：</strong><pre><code>sha256sum -c ai-dev-platform-1.5.0.zip.sha256
+gh attestation verify ai-dev-platform-1.5.0.zip \
+  -R JiaChangGit/ai_dev_platform-cicd-platform</code></pre></div>
+      <div class="step"><strong>安裝：</strong>解壓到暫存 bootstrap，執行 <code>scripts/install_platform.py</code>，先加 <code>--dry-run</code>，確認目標後再重跑。</div>
+      <div class="step"><strong>初始化 Android：</strong><pre><code>cd /absolute/path/to/Work/ai-dev-platform
 python3 -B scripts/init_product.py \
-  --name sample-product \
-  --domain generic \
+  --name sample-android \
+  --display-name "Sample Android" \
+  --domain android \
   --ci github-actions \
-  --dry-run</code></pre><p>確認路徑後移除 <code>--dry-run</code>。不修改唯讀平台；產品入口固定讀取平行的穩定包。</p></section>
-    <section id="cases"><h2>案例</h2><ul><li>SSD PCIe 韌體：C11 trace ring buffer 與 host test。</li><li>Android App：AGP 9.2.0、內建 Kotlin、狀態畫面與 unit test。</li><li>規格筆記：虛構規格、追溯矩陣、離線 HTML 與識別字驗證。</li></ul></section>
-    <section id="boundaries"><h2>安全與隱私邊界</h2><p>不提交 Token、私鑰、cookie、客戶資料、內部網址或未獲准公開的規格。個人 Gmail 與 hostname 是否保留由 repository owner 決定；憑證不適用此例外。</p></section>
-    <section id="cleanup"><h2>精簡原則</h2><p>平台不內含 Cookbook、第三方 skills、模型 registry 或同步腳本。歷史 blob 仍在 Git；是否重寫歷史另案處理。</p></section>
-    <section id="release"><h2>發行</h2><p><code>scripts/package_release.py</code> 建 ZIP；<code>scripts/install_platform.py</code> 驗證並安裝；<code>scripts/verify_release_layout.py</code> 檢查 release 邊界；<code>scripts/verify_release_evidence.py</code> 驗證 JSON 契約、必要 checks、SHA-256 格式；<code>scripts/verify_release_readiness.py</code> 驗證實體 artifact／signature／SBOM／provenance。這些腳本不會連線查詢 CI run，發布者仍須到平台確認。</p></section>
-    <section id="github"><h2>GitHub 與 GitLab</h2><p>GitHub 是 canonical source。GitLab Free 作手動鏡像；不宣稱已完成自動 pull mirror 或免費強制 approval rule。</p></section>
-    <section id="troubleshooting"><h2>常見失敗</h2><table><tbody><tr><th>封裝拒絕 dirty worktree</th><td>先 commit 並經 PR 合併；<code>--allow-dirty</code> 只供診斷。</td></tr><tr><th>release readiness 失敗</th><td>依錯誤補齊真實成品、hash、證據或 tag；不要略過。</td></tr><tr><th>GitLab 與 GitHub 分岔</th><td>GitLab 鏡像不直接修改，只從 GitHub main 與 tags 推送。</td></tr></tbody></table></section>
-    <section id="verify"><h2>驗證</h2><pre><code>bash scripts/check.sh
+  --with-example \
+  --dry-run</code></pre></div>
+      <div class="step"><strong>初始化 SSD：</strong>將 domain 改為 <code>ssd-pcie-fw</code>；依產品選擇 CI。</div>
+      <div class="step"><strong>初始化規格手冊：</strong>使用 <code>generic</code>，並提供 product type、target platform、language/framework、build、test、lint、package、artifact path 九項參數；加 <code>--with-example</code> 會複製 spec-notes。</div>
+      <p>確認 dry-run 顯示兩個正確且不存在的目錄後，移除 <code>--dry-run</code>。產品不修改唯讀平台。初始化器建立兩個獨立 Git repository，但不建立遠端、不設定 branch protection、不建立 secret。</p>
+    </section>
+
+    <section id="update">
+      <h2>5. 更新既有 dev project</h2>
+      <div class="diagram" role="img" aria-label="平台更新流程"><div class="node">下載正式 Release</div><div class="arrow">→</div><div class="node">驗證 checksum／attestation</div><div class="arrow">→</div><div class="node">installer dry-run</div><div class="arrow">→</div><div class="node">原子替換唯讀平台</div><div class="arrow">→</div><div class="node">workspace audit</div><div class="arrow">→</div><div class="node">逐產品 lint／test／build／package</div></div>
+      <p>不要對既有產品重新執行初始化器。平台更新不會重寫產品入口、CI 或程式碼；產品要採用新模板或新 CI 行為時，另開產品 PR。詳細命令見 <code>docs/update-existing-product.md</code>。</p>
+    </section>
+
+    <section id="cases">
+      <h2>6. 三個可執行案例</h2>
+      <h3>SSD PCIe FW debug 與 trace</h3>
+      <p>C11 host 模擬會驗證 nsid、sector count、LBA 加法溢位與 namespace 邊界；每次記錄 READ_RECEIVED 與 READ_ACCEPTED／READ_REJECTED。Trace ring 容量是 8，覆寫最舊資料。它沒有 NVMe command、PCIe link、DMA、queue、ISR、多核心同步、cross compiler 或可燒錄 image。</p>
+      <pre><code>make -C examples/ssd-pcie-fw clean all test lint package
+./examples/ssd-pcie-fw/build/ssd-pcie-fw-sample.elf</code></pre>
+      <h3>Android App</h3>
+      <p>AGP 9.2.0、Gradle 9.4.1、JDK 17、SDK 36 與 built-in Kotlin。純 Kotlin render 有三項 JVM tests；Activity 把固定資料顯示在 TextView。Debug APK 不是正式發布成品。</p>
+      <pre><code>cd examples/android-app
+gradle --no-daemon :app:lintDebug
+gradle --no-daemon :app:testDebugUnitTest
+gradle --no-daemon :app:assembleDebug</code></pre>
+      <h3>Spec 筆記與 HTML</h3>
+      <p>虛構規格固定到 SAMPLE-EVENT-EXPORT 1.0。Validator 檢查 source register、REQ ID 集合、HTML 無 script 與無外部資源；不能判斷語意、授權或驗收案例是否正確。</p>
+      <pre><code>cd examples/spec-notes
+python3 -B validate.py
+python3 -m http.server 8000 --bind 127.0.0.1</code></pre>
+      <p>完整替換清單位於 <code>examples/ssd-pcie-fw/SAMPLE.md</code>、<code>examples/android-app/SAMPLE.md</code>、<code>examples/spec-notes/SAMPLE.md</code>。</p>
+    </section>
+
+    <section id="boundaries">
+      <h2>7. 安全、機密與證據邊界</h2>
+      <p>不提交 Token、cookie、私鑰、keystore、客戶資料、內部網址、未公開漏洞或未獲准散布的規格。Public repository 的 commit、PR、Actions log、Release assets 與 transparency log 可能被複製並長期保存。</p>
+      <p class="warn">Artifact attestation 連結 workflow、repository、commit 與觸發事件，不保證成品沒有弱點，也不取代 Android App Signing、韌體簽章或 secure boot。</p>
+    </section>
+
+    <section id="cleanup">
+      <h2>8. 下載、同步、設定與移除</h2>
+      <table><thead><tr><th>項目</th><th>處理方式</th></tr></thead><tbody>
+        <tr><td>下載</td><td>Release ZIP、checksum、SBOM、provenance；產品核准的 SDK、compiler 與規格。</td></tr>
+        <tr><td>同步</td><td>GitHub 是 canonical source；GitLab Free 可手動推 main 與 tags，不在鏡像直接開發。</td></tr>
+        <tr><td>設定</td><td>產品命令、domain standards、CI、required checks、CODEOWNERS、environment reviewer 與 secret store。</td></tr>
+        <tr><td>移除／排除</td><td>build、dist、.gradle、local.properties、bootstrap 暫存、失效案例檔；不刪測試來繞過失敗。</td></tr>
+      </tbody></table>
+    </section>
+
+    <section id="release">
+      <h2>9. 發行</h2>
+      <div class="diagram" role="img" aria-label="發行核准時序"><div class="node">source tag</div><div class="arrow">→</div><div class="node">release-build 人工核准</div><div class="arrow">→</div><div class="node">candidate assets</div><div class="arrow">→</div><div class="node">release evidence PR／tag</div><div class="arrow">→</div><div class="node">release-promotion 人工核准</div><div class="arrow">→</div><div class="node">正式 Release</div></div>
+      <p><code>scripts/package_release.py</code> 建 ZIP；<code>scripts/install_platform.py</code> 驗證並安裝；<code>scripts/verify_release_layout.py</code> 檢查 release 邊界；<code>scripts/verify_release_evidence.py</code> 驗證 JSON 契約、必要 checks、SHA-256 格式；<code>scripts/verify_release_readiness.py</code> 驗證實體 artifact／signature／SBOM／provenance。這些腳本不會連線查詢 CI run，發布者仍須到平台確認。</p>
+    </section>
+
+    <section id="github">
+      <h2>10. GitHub 與 GitLab</h2>
+      <p>2026-08-25 的 API 查詢顯示兩個 GitHub repositories 已設定受保護 main、required checks、review、tag ruleset 與唯讀 Actions token。Source 另有 release-build 與 release-promotion environments。GitLab 帳號尚無兩個平台鏡像；GitLab Free 不提供自動 pull mirror 或 required approval rule。</p>
+    </section>
+
+    <section id="troubleshooting">
+      <h2>11. 常見失敗</h2>
+      <table><tbody>
+        <tr><th>初始化器拒絕目標</th><td>目標目錄已存在，或平台不在 Work/ai-dev-platform。不要覆寫；先檢查路徑。</td></tr>
+        <tr><th>找不到 Gradle／SDK／compiler</th><td>平台不配送產品工具鏈；依 domain standards 安裝核准版本。</td></tr>
+        <tr><th>封裝拒絕 dirty worktree</th><td>先提交並經 PR 合併；<code>--allow-dirty</code> 只供本機診斷。</td></tr>
+        <tr><th>release readiness 失敗</th><td>依錯誤補齊真實成品、hash、證據或 tag；不要略過。</td></tr>
+        <tr><th>GitLab 與 GitHub 分岔</th><td>GitLab 鏡像不直接修改，只從 GitHub main 與 tags 推送。</td></tr>
+      </tbody></table>
+    </section>
+
+    <section id="verify">
+      <h2>12. 驗證與聲明</h2>
+      <pre><code>bash scripts/check.sh
 python3 -B -m unittest discover -s tests -v
 python3 -B scripts/audit_workspace.py /absolute/path/to/Work
 python3 -B scripts/pre_push_audit.py
-python3 -B scripts/package_release.py --dry-run --allow-dirty</code></pre><p class="ok">每個「完成」結論都應附實際指令、結果與不能在線驗證的限制。</p></section>
+python3 -B scripts/package_release.py --dry-run --allow-dirty</code></pre>
+      <p class="ok">每個完成結論要附實際指令、結果、commit／CI run，以及本次沒有執行的項目。主要聲明的對照表位於 <code>docs/documentation-validation.md</code>。</p>
+    </section>
   </main>
 </body>
 </html>
