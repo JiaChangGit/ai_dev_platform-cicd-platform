@@ -66,25 +66,36 @@ Android 範例沒有 Gradle Wrapper，執行前須確認 `gradle --version` 顯�
 
 ## 3. 下載並驗證唯讀平台
 
-第一份正式 Release 是 `v1.5.0`。從[來源 repository 的 Releases](https://github.com/JiaChangGit/ai_dev_platform-cicd-platform/releases/tag/v1.5.0)下載下列檔案：
+第一份正式 Release 是 `v1.5.0`。以下以本份平台文件對應的 `v1.5.1` 為目標；若 promotion 尚未完成，前兩個 `test` 會停止操作，不得安裝 prerelease candidate。
 
-- `ai-dev-platform-1.5.0.zip`
-- `ai-dev-platform-1.5.0.zip.sha256`
-- `ai-dev-platform-1.5.0.spdx.json`
-- `ai-dev-platform-1.5.0.provenance.sigstore.json`
-
-先驗證 ZIP，再執行 ZIP 內的安裝器：
+正式 Release 應有六個檔案：ZIP、ZIP checksum、SPDX SBOM、SBOM checksum、Sigstore provenance bundle 與 bundle checksum。先從[來源 repository 的 Releases](https://github.com/JiaChangGit/ai_dev_platform-cicd-platform/releases)查詢狀態並下載：
 
 ```bash
-mkdir -p /absolute/path/to/downloads/v1.5.0/bootstrap
-cd /absolute/path/to/downloads/v1.5.0
-sha256sum -c ai-dev-platform-1.5.0.zip.sha256
-gh attestation verify ai-dev-platform-1.5.0.zip \
+PLATFORM_VERSION=1.5.1
+DOWNLOAD_DIR=/absolute/path/to/downloads/v${PLATFORM_VERSION}
+
+test "$(gh release view "v${PLATFORM_VERSION}" \
+  -R JiaChangGit/ai_dev_platform-cicd-platform \
+  --json isDraft --jq .isDraft)" = false
+test "$(gh release view "v${PLATFORM_VERSION}" \
+  -R JiaChangGit/ai_dev_platform-cicd-platform \
+  --json isPrerelease --jq .isPrerelease)" = false
+mkdir -p "${DOWNLOAD_DIR}/bootstrap"
+gh release download "v${PLATFORM_VERSION}" \
+  -R JiaChangGit/ai_dev_platform-cicd-platform \
+  --pattern "ai-dev-platform-${PLATFORM_VERSION}*" \
+  --dir "${DOWNLOAD_DIR}"
+
+cd "${DOWNLOAD_DIR}"
+sha256sum -c "ai-dev-platform-${PLATFORM_VERSION}.zip.sha256"
+sha256sum -c "ai-dev-platform-${PLATFORM_VERSION}.spdx.json.sha256"
+sha256sum -c "ai-dev-platform-${PLATFORM_VERSION}.provenance.sigstore.json.sha256"
+gh attestation verify "ai-dev-platform-${PLATFORM_VERSION}.zip" \
   -R JiaChangGit/ai_dev_platform-cicd-platform
-python3 -m zipfile -e ai-dev-platform-1.5.0.zip bootstrap
+python3 -m zipfile -e "ai-dev-platform-${PLATFORM_VERSION}.zip" bootstrap
 python3 -B bootstrap/ai-dev-platform/scripts/install_platform.py \
-  ai-dev-platform-1.5.0.zip \
-  --checksum ai-dev-platform-1.5.0.zip.sha256 \
+  "ai-dev-platform-${PLATFORM_VERSION}.zip" \
+  --checksum "ai-dev-platform-${PLATFORM_VERSION}.zip.sha256" \
   --work-root /absolute/path/to/Work \
   --dry-run
 ```
@@ -249,9 +260,22 @@ git switch -c feature/<short-name>
 python3 -B ../ai-dev-platform/scripts/pre_push_audit.py
 git status --short
 git diff --check
+
+# 每個 commit 只 stage 同一件事需要的檔案；提交前先驗證訊息。
+git add <files-for-one-change>
+bash scripts/commit-lint.sh --message "fix(scope): describe one change"
+git commit -m "fix(scope): describe one change"
+
+# 重複 add／lint／commit 後，驗證整個 PR 新增的每一筆 commit。
+bash scripts/commit-lint.sh --range origin/main..HEAD
+git log --oneline origin/main..HEAD
+git push -u origin feature/<short-name>
+gh pr create --base main --head feature/<short-name> \
+  --title "fix(scope): describe the reviewed change" \
+  --body "列出範圍、驗證命令、結果、限制與回復方式。"
 ```
 
-送 PR 前，README 的命令必須與 CI 使用相同的工作目錄與工具版本。不能在本機執行的檢查要寫明原因，交由已設定的 CI 驗證，不可寫成「已通過」。
+送 PR 前，README 的命令必須與 CI 使用相同的工作目錄與工具版本。不能在本機執行的檢查要寫明原因，交由已設定的 CI 驗證，不可寫成「已通過」。PR 建立後用 `gh pr checks --watch` 等 required checks；作者不能核准自己的 PR。獨立 reviewer 在自己的帳號執行 `gh pr review <number> --approve` 後，才可依 repository 合併政策執行 `gh pr merge <number> --rebase --delete-branch`。若最後一次 push 發生在核准之後，舊核准會失效，必須重新審查。
 
 ## 9. 驗證內建案例
 
