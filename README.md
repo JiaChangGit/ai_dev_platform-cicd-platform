@@ -49,8 +49,9 @@ cd /absolute/path/to/Work/ai-dev-platform
 python3 -B scripts/init_product.py \
   --name my-product \
   --display-name "My Product" \
-  --domain generic \
+  --domain android \
   --ci github-actions \
+  --with-example \
   --dry-run
 ```
 
@@ -59,10 +60,13 @@ python3 -B scripts/init_product.py \
 ## 文件索引
 
 - [`docs/getting-started.md`](docs/getting-started.md)：安裝、建立產品與案例步驟。
+- [`docs/architecture.md`](docs/architecture.md)：工作區、控制流、資料流、發行時序與信任邊界。
+- [`docs/documentation-validation.md`](docs/documentation-validation.md)：主要聲明的程式、測試、線上狀態與官方來源對照。
 - [`docs/repository-operations.md`](docs/repository-operations.md)：GitHub／GitLab 免費方案、安全與隱私設定。
 - [`docs/ci-cd-release.md`](docs/ci-cd-release.md)：CI、candidate、release repo 與正式推進。
 - [`docs/maintainer-mode.md`](docs/maintainer-mode.md)：修改與發布本平台。
 - [`docs/how-adopt-existing.md`](docs/how-adopt-existing.md)：不改寫歷史地導入既有專案。
+- [`docs/update-existing-product.md`](docs/update-existing-product.md)：更新共用平台並驗證已導入的 dev project。
 - [`docs/domain-adaptation.md`](docs/domain-adaptation.md)：查證 Android、SSD／PCIe 等版本敏感內容。
 - [`docs/tool-compatibility.md`](docs/tool-compatibility.md)：`AGENTS.md`、`CLAUDE.md` 與 `opencode.json` 的載入方式。
 

@@ -2,6 +2,8 @@
 
 本文件只供平台範例測試，不是任何標準或產品規格。
 
+採用版本：`SAMPLE-EVENT-EXPORT 1.0`。來源與散布邊界見 `source-register.md`。
+
 ## REQ-001：輸出格式
 
 工具應將每筆事件輸出為一行 UTF-8 文字，欄位順序為 sequence、level、code、message。

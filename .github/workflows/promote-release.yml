@@ -77,7 +77,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          cat > formal-release-notes.md <<EOF
+          # AI Dev Platform v${VERSION}
+
+          此版本已通過 release-build、release metadata readiness 與 release-promotion 人工核准關卡。
+
+          - Release Note: https://github.com/JiaChangGit/ai_dev_platform-release/blob/v${VERSION}/release-notes/${VERSION}.md
+          - Release evidence: https://github.com/JiaChangGit/ai_dev_platform-release/blob/v${VERSION}/release-evidence/${VERSION}.json
+          - Verify: \`gh attestation verify ai-dev-platform-${VERSION}.zip -R JiaChangGit/ai_dev_platform-cicd-platform\`
+          EOF
           gh release edit "v${VERSION}" \
             --repo "${GITHUB_REPOSITORY}" \
             --prerelease=false \
+            --title "AI Dev Platform v${VERSION}" \
+            --notes-file formal-release-notes.md \
             --latest

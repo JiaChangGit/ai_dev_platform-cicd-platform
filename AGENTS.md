@@ -40,8 +40,9 @@ Work/
 cd ../ai-dev-platform
 python3 -B scripts/init_product.py \
   --name sample-product \
-  --domain generic \
+  --domain android \
   --ci github-actions \
+  --with-example \
   --dry-run
 ```
 

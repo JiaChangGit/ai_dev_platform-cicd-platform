@@ -23,6 +23,50 @@ class ExampleValidationTest(unittest.TestCase):
         )
         self.assertIn("3 個需求識別字", result.stdout)
 
+    def test_spec_notes_reject_unknown_requirement_id(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "spec-notes"
+            shutil.copytree(ROOT / "examples/spec-notes", root)
+            notes = root / "reading-notes.md"
+            notes.write_text(
+                notes.read_text(encoding="utf-8") + "\nREQ-999：規格沒有定義。\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [sys.executable, "-B", "validate.py"],
+                cwd=root,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("出現規格未定義的識別字：REQ-999", result.stdout)
+
+    def test_spec_notes_reject_script_and_external_resource(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "spec-notes"
+            shutil.copytree(ROOT / "examples/spec-notes", root)
+            html = root / "index.html"
+            html.write_text(
+                html.read_text(encoding="utf-8").replace(
+                    "</body>",
+                    '<script src="https://example.invalid/app.js"></script></body>',
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [sys.executable, "-B", "validate.py"],
+                cwd=root,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("不得包含 script", result.stdout)
+            self.assertIn("不得載入外部資源", result.stdout)
+
     def test_android_sample_has_build_test_and_app_entrypoint(self):
         root = ROOT / "examples/android-app"
         build = (root / "build.gradle.kts").read_text(encoding="utf-8")

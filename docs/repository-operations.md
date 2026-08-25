@@ -1,6 +1,6 @@
 # GitHub、GitLab 與公開安全設定
 
-本文件供 repository owner 在不購買 GitHub Pro 或 GitLab Premium 的前提下設定公開專案。介面與方案會改版；以下狀態於 2026-08-24 重新核對。
+本文件供 repository owner 在不購買 GitHub Pro 或 GitLab Premium 的前提下設定公開專案。介面與方案會改版；以下狀態於 2026-08-25 透過 GitHub／GitLab API 與官方方案文件重新核對。
 
 ## 目前已驗證的 GitHub 狀態
 
@@ -30,7 +30,7 @@ GitHub 官方確認公開 repository 可在 Free 方案使用 protected branches
 
 ## GitLab Free 鏡像
 
-截至 2026-08-24，GitLab 帳號 `JiaChangGit` 的公開專案清單尚未出現這兩個平台 repository，因此 GitLab 尚未完成。
+截至 2026-08-25，GitLab 帳號 `JiaChangGit` 的公開專案清單尚未出現這兩個平台 repository，因此 GitLab 尚未完成。
 
 GitHub 是 canonical source。GitLab Free 的 push mirror 是「GitLab 推到外部」，而外部來源拉進 GitLab的 pull mirroring 需要 Premium／Ultimate；因此免費方案採手動鏡像：[GitLab repository mirroring](https://docs.gitlab.com/user/project/repository/mirror/)、[push mirroring](https://docs.gitlab.com/user/project/repository/mirror/push/)。
 
