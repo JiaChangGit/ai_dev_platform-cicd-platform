@@ -156,6 +156,8 @@ def install_platform(
             raise
     if moved_old and not keep_backup:
         remove_tree(backup)
+    elif moved_old:
+        print(f"[OK] previous platform backup retained: {backup}")
     return target
 
 

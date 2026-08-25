@@ -88,6 +88,13 @@ class StaticGuideTest(unittest.TestCase):
         for option in ("--product-type", "--target-platform", "--language-framework", "--with-example"):
             self.assertIn(option, text)
 
+    def test_update_summary_requires_release_verification_and_backup(self):
+        text = GUIDE.read_text(encoding="utf-8")
+        self.assertIn("不是 draft 或 prerelease", text)
+        self.assertIn("spdx.json.sha256", text)
+        self.assertIn("provenance.sigstore.json.sha256", text)
+        self.assertIn("--keep-backup", text)
+
 
 if __name__ == "__main__":
     unittest.main()

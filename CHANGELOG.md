@@ -15,6 +15,9 @@
 - 擴充 SSD FW trace、Android App 與 Spec 靜態手冊三份案例，明列可執行步驟、產品替換清單與未實作邊界
 - 規格案例新增來源 revision 登記，驗證器會拒絕缺少／多出的 REQ ID、script 與外部資源
 - 同步產品初始化器的 `setup-gradle` 固定 commit，並修正 `v1.5.0` 正式 Release 的舊 candidate 標題與說明
+- 安裝器使用 `--keep-backup` 時會回報上一版平台的完整保留路徑，供更新失敗時精確回復
+- 更新教學會先拒絕 draft／prerelease、驗證三份 checksum 與 attestation，再保留 backup 並逐產品驗證
+- 發行教學新增逐 commit lint、完整 self-check、source PR、獨立核准與 rebase merge 的可重跑命令
 
 ## [1.5.0]
 

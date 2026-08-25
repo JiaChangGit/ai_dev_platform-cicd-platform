@@ -122,6 +122,27 @@ class DocumentationContractTest(unittest.TestCase):
         ):
             self.assertIn(option, guide)
         self.assertIn("source-register.md", guide)
+        self.assertIn("commit-lint.sh --range origin/main..HEAD", guide)
+        self.assertIn("gh pr create --base main", guide)
+        self.assertIn("gh pr review <number> --approve", guide)
+        self.assertIn("gh pr merge <number> --rebase --delete-branch", guide)
+
+    def test_update_guide_targets_manifest_and_preserves_backup(self):
+        manifest = json.loads(read("distribution/manifest.json"))
+        guide = read("docs/update-existing-product.md")
+        self.assertIn(f"PLATFORM_VERSION={manifest['version']}", guide)
+        self.assertIn("--json isDraft --jq .isDraft", guide)
+        self.assertIn("--json isPrerelease --jq .isPrerelease", guide)
+        self.assertIn("--keep-backup", guide)
+        self.assertIn("previous platform backup retained", guide)
+
+    def test_release_guide_preserves_atomic_commit_history(self):
+        guide = read("docs/ci-cd-release.md")
+        self.assertIn("commit-lint.sh --message", guide)
+        self.assertIn("commit-lint.sh --range origin/main..HEAD", guide)
+        self.assertIn("gh pr checks --watch", guide)
+        self.assertIn("gh pr merge <number> --rebase --delete-branch", guide)
+        self.assertIn("last-push approval", guide)
 
     def test_case_guides_include_diagrams_and_product_boundaries(self):
         required = {

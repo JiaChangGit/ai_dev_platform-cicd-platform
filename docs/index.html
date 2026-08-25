@@ -51,8 +51,10 @@
     <section id="setup">
       <h2>4. 建立產品</h2>
       <div class="step"><strong>準備：</strong>Git、Bash、Python 3、PyYAML 6.0.3、GitHub CLI；Android 另需 JDK 17、SDK 36、Gradle 9.4.1；SSD 案例另需 make 與 C11 compiler。</div>
-      <div class="step"><strong>驗證 Release：</strong><pre><code>sha256sum -c ai-dev-platform-1.5.0.zip.sha256
-gh attestation verify ai-dev-platform-1.5.0.zip \
+      <div class="step"><strong>驗證 Release：</strong>先確認目標版本不是 draft 或 prerelease，再驗證三份 checksum 與 attestation。<pre><code>sha256sum -c ai-dev-platform-X.Y.Z.zip.sha256
+sha256sum -c ai-dev-platform-X.Y.Z.spdx.json.sha256
+sha256sum -c ai-dev-platform-X.Y.Z.provenance.sigstore.json.sha256
+gh attestation verify ai-dev-platform-X.Y.Z.zip \
   -R JiaChangGit/ai_dev_platform-cicd-platform</code></pre></div>
       <div class="step"><strong>安裝：</strong>解壓到暫存 bootstrap，執行 <code>scripts/install_platform.py</code>，先加 <code>--dry-run</code>，確認目標後再重跑。</div>
       <div class="step"><strong>初始化 Android：</strong><pre><code>cd /absolute/path/to/Work/ai-dev-platform
@@ -71,7 +73,7 @@ python3 -B scripts/init_product.py \
     <section id="update">
       <h2>5. 更新既有 dev project</h2>
       <div class="diagram" role="img" aria-label="平台更新流程"><div class="node">下載正式 Release</div><div class="arrow">→</div><div class="node">驗證 checksum／attestation</div><div class="arrow">→</div><div class="node">installer dry-run</div><div class="arrow">→</div><div class="node">原子替換唯讀平台</div><div class="arrow">→</div><div class="node">workspace audit</div><div class="arrow">→</div><div class="node">逐產品 lint／test／build／package</div></div>
-      <p>不要對既有產品重新執行初始化器。平台更新不會重寫產品入口、CI 或程式碼；產品要採用新模板或新 CI 行為時，另開產品 PR。詳細命令見 <code>docs/update-existing-product.md</code>。</p>
+      <p>不要對既有產品重新執行初始化器。平台更新不會重寫產品入口、CI 或程式碼；正式安裝加上 <code>--keep-backup</code>，並保存安裝器輸出的完整 backup 路徑。產品要採用新模板或新 CI 行為時，另開產品 PR。詳細命令見 <code>docs/update-existing-product.md</code>。</p>
     </section>
 
     <section id="cases">

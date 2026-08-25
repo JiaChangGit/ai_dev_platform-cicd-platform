@@ -31,6 +31,32 @@ Actions 都以完整 commit SHA 固定。release 工作需要 `contents: write`�
 
 `v1.5.0` 已完成第一份正式 Release。以下以 `v1.5.1` 示範後續版本；實際版本必須與 `distribution/manifest.json` 一致。
 
+0. 從最新 source `main` 建 `release/1.5.1`，把不同邏輯拆成不同 commit。每筆訊息在 commit 前先用 `--message` 檢查；push 前再檢查整個 PR 範圍：
+
+   ```bash
+   git switch main
+   git pull --ff-only origin main
+   git switch -c release/1.5.1
+
+   git add <files-for-one-change>
+   bash scripts/commit-lint.sh --message "fix(scope): describe one change"
+   git commit -m "fix(scope): describe one change"
+   # 其他獨立變更重複 add／lint／commit，不使用 git add -A 混在一起。
+
+   bash scripts/commit-lint.sh --range origin/main..HEAD
+   bash scripts/check.sh
+   python3 -B -m unittest discover -s tests -v
+   python3 -B scripts/pre_push_audit.py
+   git diff --check origin/main..HEAD
+   git push -u origin release/1.5.1
+   gh pr create --base main --head release/1.5.1 \
+     --title "chore(release): prepare v1.5.1" \
+     --body "列出每筆 commit、驗證結果、限制與回復方式。"
+   gh pr checks --watch
+   ```
+
+   作者不得核准自己的 PR。不同帳號的 reviewer 核准且 required checks 全綠後，以 `gh pr merge <number> --rebase --delete-branch` 保留原子 commits 並維持 linear history。若核准後又 push，必須重新取得 last-push approval。
+
 1. 在來源 repository 的乾淨 `main` 建立 annotated tag：
 
    ```bash

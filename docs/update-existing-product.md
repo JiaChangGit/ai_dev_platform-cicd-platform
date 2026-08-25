@@ -24,12 +24,18 @@ python3 -B /absolute/path/to/Work/ai-dev-platform/scripts/audit_workspace.py \
 
 ## Step 1：下載並驗證正式 Release
 
-以下使用已在 2026-08-25 驗證為非 draft、非 prerelease 的 `1.5.0`；改用其他版本前，先確認該版本已完成 promotion：
+以下以 `1.5.1` 為目標版本。第一個正式版本是 `1.5.0`；無論更新到哪一版，都要以 GitHub 當下狀態確認該版本已完成 promotion，不能只看文件中的版本號：
 
 ```bash
-PLATFORM_VERSION=1.5.0
+PLATFORM_VERSION=1.5.1
 DOWNLOAD_DIR=/absolute/path/to/downloads/ai-dev-platform-${PLATFORM_VERSION}
 
+test "$(gh release view "v${PLATFORM_VERSION}" \
+  -R JiaChangGit/ai_dev_platform-cicd-platform \
+  --json isDraft --jq .isDraft)" = false
+test "$(gh release view "v${PLATFORM_VERSION}" \
+  -R JiaChangGit/ai_dev_platform-cicd-platform \
+  --json isPrerelease --jq .isPrerelease)" = false
 mkdir -p "${DOWNLOAD_DIR}"
 gh release download "v${PLATFORM_VERSION}" \
   -R JiaChangGit/ai_dev_platform-cicd-platform \
@@ -51,7 +57,7 @@ gh attestation verify "ai-dev-platform-${PLATFORM_VERSION}.zip" \
 使用目前已安裝平台的 installer。若 Release Note 明確要求新版 bootstrap installer，才改用同版已驗證 source tag：
 
 ```bash
-PLATFORM_VERSION=1.5.0
+PLATFORM_VERSION=1.5.1
 DOWNLOAD_DIR=/absolute/path/to/downloads/ai-dev-platform-${PLATFORM_VERSION}
 
 python3 -B /absolute/path/to/Work/ai-dev-platform/scripts/install_platform.py \
@@ -68,16 +74,17 @@ python3 -B /absolute/path/to/Work/ai-dev-platform/scripts/install_platform.py \
 dry-run 通過後，以相同命令移除 `--dry-run`：
 
 ```bash
-PLATFORM_VERSION=1.5.0
+PLATFORM_VERSION=1.5.1
 DOWNLOAD_DIR=/absolute/path/to/downloads/ai-dev-platform-${PLATFORM_VERSION}
 
 python3 -B /absolute/path/to/Work/ai-dev-platform/scripts/install_platform.py \
   "${DOWNLOAD_DIR}/ai-dev-platform-${PLATFORM_VERSION}.zip" \
   --checksum "${DOWNLOAD_DIR}/ai-dev-platform-${PLATFORM_VERSION}.zip.sha256" \
-  --work-root /absolute/path/to/Work
+  --work-root /absolute/path/to/Work \
+  --keep-backup
 ```
 
-安裝器會在 staging 中驗證逐檔 hash、權限與 consumer self-check，成功後才原子替換目標；安裝階段失敗時會保留或還原舊平台。
+安裝器會在 staging 中驗證逐檔 hash、權限與 consumer self-check，成功後才原子替換目標；安裝階段失敗時會保留或還原舊平台。`--keep-backup` 成功時會輸出 `[OK] previous platform backup retained: <absolute-path>`；立即把該完整路徑記進升級紀錄，不要用萬用字元猜測回復目標。
 
 ## Step 4：驗證 workspace 與每個產品
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import hashlib
+import io
 import json
 import os
 import stat
@@ -8,6 +9,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
+from contextlib import redirect_stdout
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -82,6 +84,27 @@ class WorkspaceToolTest(unittest.TestCase):
                 install_platform(archive, checksum, work)
 
             self.assertEqual(marker.read_text(encoding="utf-8"), "stable")
+
+    @unittest.skipUnless(os.name == "posix", "需要 POSIX 檔案權限")
+    def test_installer_reports_retained_backup_path(self):
+        with tempfile.TemporaryDirectory() as temp:
+            work = Path(temp)
+            target = work / "ai-dev-platform"
+            target.mkdir()
+            (target / "stable.txt").write_text("stable", encoding="utf-8")
+            archive, checksum = self.make_archive(work)
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                install_platform(archive, checksum, work, keep_backup=True)
+
+            backups = list(work.glob(".ai-dev-platform-backup-*"))
+            self.assertEqual(len(backups), 1)
+            self.assertIn(str(backups[0]), output.getvalue())
+            self.assertEqual(
+                (backups[0] / "stable.txt").read_text(encoding="utf-8"),
+                "stable",
+            )
 
     @unittest.skipUnless(os.name == "posix", "需要 POSIX 檔案權限")
     def test_audit_accepts_always_current_product(self):
