@@ -82,8 +82,18 @@ class StaticGuideTest(unittest.TestCase):
     def test_onboarding_commands_use_safe_paths_and_dry_run(self):
         text = GETTING_STARTED.read_text(encoding="utf-8")
         self.assertNotIn("cd <Work>", text)
+        self.assertNotIn("目前 GitHub 尚未發布第一份正式 Release", text)
         self.assertIn("scripts/init_product.py", text)
         self.assertIn("--dry-run", text)
+        for option in ("--product-type", "--target-platform", "--language-framework", "--with-example"):
+            self.assertIn(option, text)
+
+    def test_update_summary_requires_release_verification_and_backup(self):
+        text = GUIDE.read_text(encoding="utf-8")
+        self.assertIn("不是 draft 或 prerelease", text)
+        self.assertIn("spdx.json.sha256", text)
+        self.assertIn("provenance.sigstore.json.sha256", text)
+        self.assertIn("--keep-backup", text)
 
 
 if __name__ == "__main__":
